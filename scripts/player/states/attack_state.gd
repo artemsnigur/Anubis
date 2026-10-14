@@ -89,4 +89,6 @@ func _deactivate() -> void:
 		return
 	phase = Phase.RECOVERY
 	player.hitbox.deactivate()
-	player.trail.emitting = false
+	get_tree().create_timer(0.05, false).timeout.connect(func() -> void:
+		if not player.fsm.is_in(&"Attack") or phase == Phase.RECOVERY:
+			player.trail.emitting = false)

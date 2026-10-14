@@ -1,0 +1,89 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/enemies/training_dummy.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/rigs/dummy_rig.gd" id="2"]
+[ext_resource type="Resource" path="res://resources/animation/dummy_anim_map.tres" id="3"]
+[ext_resource type="Resource" path="res://resources/enemies/dummy.tres" id="4"]
+[ext_resource type="Script" path="res://scripts/combat/health_component.gd" id="5"]
+[ext_resource type="Script" path="res://scripts/combat/poise_component.gd" id="6"]
+[ext_resource type="Script" path="res://scripts/combat/hurtbox_component.gd" id="7"]
+[ext_resource type="Script" path="res://scripts/combat/hitbox_component.gd" id="8"]
+[ext_resource type="Script" path="res://scripts/systems/fsm/state_machine.gd" id="9"]
+[ext_resource type="Script" path="res://scripts/enemies/states/idle_state.gd" id="10"]
+[ext_resource type="Script" path="res://scripts/enemies/states/flinch_state.gd" id="11"]
+[ext_resource type="Script" path="res://scripts/enemies/states/stagger_state.gd" id="12"]
+[ext_resource type="Script" path="res://scripts/enemies/states/dead_state.gd" id="13"]
+
+[sub_resource type="CapsuleShape3D" id="body_shape"]
+radius = 0.45
+height = 2.0
+
+[sub_resource type="CapsuleShape3D" id="hurt_shape"]
+radius = 0.55
+height = 2.0
+
+[sub_resource type="BoxShape3D" id="hit_shape"]
+size = Vector3(1.5, 1.4, 1.5)
+
+[node name="TrainingDummy" type="CharacterBody3D"]
+collision_layer = 4
+collision_mask = 39
+floor_max_angle = 0.82
+floor_snap_length = 0.45
+script = ExtResource("1")
+faction = 1
+lock_height = 1.4
+body_radius = 0.45
+data = ExtResource("4")
+hit_sound = &"hit_stone"
+hit_burst = &"sand"
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.0, 0)
+shape = SubResource("body_shape")
+
+[node name="Visual" type="Node3D" parent="."]
+
+[node name="Rig" type="Node3D" parent="Visual"]
+script = ExtResource("2")
+anim_map = ExtResource("3")
+
+[node name="Health" type="Node" parent="."]
+script = ExtResource("5")
+
+[node name="Poise" type="Node" parent="."]
+script = ExtResource("6")
+
+[node name="Hurtbox" type="Area3D" parent="."]
+script = ExtResource("7")
+faction = 1
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Hurtbox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.0, 0)
+shape = SubResource("hurt_shape")
+
+[node name="Hitbox" type="Area3D" parent="."]
+script = ExtResource("8")
+faction = 1
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Hitbox"]
+shape = SubResource("hit_shape")
+
+[node name="NavAgent" type="NavigationAgent3D" parent="."]
+path_height_offset = 0.5
+
+[node name="StateMachine" type="Node" parent="."]
+script = ExtResource("9")
+initial_state = &"Idle"
+
+[node name="Idle" type="Node" parent="StateMachine"]
+script = ExtResource("10")
+
+[node name="Flinch" type="Node" parent="StateMachine"]
+script = ExtResource("11")
+
+[node name="Stagger" type="Node" parent="StateMachine"]
+script = ExtResource("12")
+
+[node name="Dead" type="Node" parent="StateMachine"]
+script = ExtResource("13")

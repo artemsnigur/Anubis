@@ -28,7 +28,7 @@ func enter(_msg: Dictionary) -> void:
 func exit() -> void:
 	player.hitbox.deactivate()
 	player.trail.emitting = false
-	player.trail.set_intensity(1.6)
+	player.trail.set_intensity(3.2)
 
 
 ## Hyper armour from the end of the windup to the end of the active frames.
@@ -93,7 +93,7 @@ func _release() -> void:
 	player.motion.stretch_impulse(0.2)
 	var k := clampf(charge / maxf(player.stats.heavy_max_charge, 0.01), 0.0, 1.0)
 	player.set_meta(&"heavy_charge_k", k)
-	player.trail.set_intensity(1.6 + k * 1.6)
+	player.trail.set_intensity(3.2 + k * 3.0)
 	player.hitbox.activate(attack, player.melee_multiplier() * lerpf(1.0, player.stats.heavy_charge_damage_mult, k))
 	player.trail.emitting = true
 	AudioManager.play_event(&"heavy_swing", player.global_position + Vector3.UP)

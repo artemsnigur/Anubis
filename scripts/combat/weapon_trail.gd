@@ -6,10 +6,10 @@ extends MeshInstance3D
 
 const SHADER := preload("res://assets/shaders/trail.gdshader")
 
-@export var lifetime: float = 0.16
+@export var lifetime: float = 0.22
 @export var subdivisions: int = 4
-@export var core_color: Color = Color(1.0, 0.93, 0.7)
-@export var edge_color: Color = Color(0.25, 0.85, 0.85)
+@export var core_color: Color = Color(1.0, 0.88, 0.55)
+@export var edge_color: Color = Color(0.2, 0.9, 0.85)
 
 var base_point: Node3D
 var tip_point: Node3D
@@ -30,6 +30,7 @@ func _ready() -> void:
 	_mat.shader = SHADER
 	_mat.set_shader_parameter(&"core_color", core_color)
 	_mat.set_shader_parameter(&"edge_color", edge_color)
+	_mat.set_shader_parameter(&"intensity", 3.2)
 	material_override = _mat
 	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 

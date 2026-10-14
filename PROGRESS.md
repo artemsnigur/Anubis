@@ -25,3 +25,16 @@
 - Tests: `tests/player_motion_test.tscn` (run speed 6.0 m/s, full speed in 0.1 s, stop in <0.12 s, dodge ≈4.5 m,
   i-frames 0.217 s, chain to hit 3, dodge-cancel) — all PASS. `tests/smoke_test.tscn` runs 10 s with a bot.
 - Visual harness: `tests/visual/capture.tscn` and `tests/visual/pose_sheet.tscn` render screenshots in a window.
+
+## Milestone 2 — combat core ✅
+- Light chain / heavy charge / Eye of Ra / heal fully wired to hitboxes (`HitboxComponent` shape queries,
+  hit-once-per-activation), hurtboxes with factions, local hitstop for attacker + target, trauma shake
+  (one shake per frame even on multi-hits), white hit flash overlay, additive recoil, sparks + sand bursts,
+  faience shards when the hero is hit, weapon trail ribbon (Catmull-Rom, HDR so it blooms).
+- `EnemyBase` + shared AI states (Idle/Alert/Chase/Strafe/Attack/Flinch/Stagger/Return/Dead/Retreat/Evade),
+  `AIDirector` attack tokens (max 2), telegraphs (glint / red flash), poise & stagger damage window.
+- Training dummy (`scenes/enemies/training_dummy.tscn`): flinches, staggers, refills HP, damage numbers.
+- `tests/combat_test.tscn`: 18 checks (damage values, hitstop on both sides, energy gain, charged heavy 57.6,
+  poise break + stagger multiplier, dodge i-frames, heal + punished heal, Eye of Ra, input buffer out of a dodge,
+  lock-on toggle) — all PASS.
+- Visual check (screenshots): flash, sparks, sand puffs, trail visible during swings.

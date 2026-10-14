@@ -30,6 +30,7 @@ var game_camera: GameCamera
 var _stamina_delay: float = 0.0
 var _safe_timer: float = 0.0
 var _step_toggle: bool = false
+var _last_shake_frame: int = -1
 
 
 func _combatant_ready() -> void:
@@ -345,7 +346,10 @@ func _on_hit_landed(target: Node3D, hit: HitInfo) -> void:
 	if hit.attack != null and not hit.is_projectile:
 		add_energy(hit.attack.energy_gain)
 	var amount := hit.shake * (1.4 if hit.is_heavy else 1.0)
-	CameraShake.add_trauma(amount)
+	# One shake per physics frame, even when a swing hits several enemies.
+	if Engine.get_physics_frames() != _last_shake_frame:
+		_last_shake_frame = Engine.get_physics_frames()
+		CameraShake.add_trauma(amount)
 	if target is Combatant:
 		var c := target as Combatant
 		c.motion.stretch_impulse(-0.12)
@@ -395,7 +399,7 @@ func notify_death_finished() -> void:
 
 
 func camera_look_ahead() -> Vector3:
-	var la := Vector3(move_velocity.x, 0.0, move_velocity.z) * 0.3
+	var la := input.move_world() * 1.6
 	if lock_on.target != null and is_instance_valid(lock_on.target):
 		var to := lock_on.target.global_position - global_position
 		to.y = 0.0

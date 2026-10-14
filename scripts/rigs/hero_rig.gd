@@ -86,12 +86,12 @@ func _build_body() -> void:
 	socket.add_child(blade)
 	var tb := Node3D.new()
 	tb.name = "TrailBase"
-	tb.position = Vector3(0, -0.2, 0)
+	tb.position = Vector3(0, -0.16, 0)
 	socket.add_child(tb)
 	sockets[&"trail_base"] = tb
 	var tt := Node3D.new()
 	tt.name = "TrailTip"
-	tt.position = Vector3(0, -0.55, -0.27)
+	tt.position = Vector3(0, -0.66, -0.3)
 	socket.add_child(tt)
 	sockets[&"trail_tip"] = tt
 	add_socket(&"hand_l", "HandL", Vector3(0, -0.08, -0.04))

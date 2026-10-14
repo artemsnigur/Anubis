@@ -157,7 +157,7 @@ func _build_effects() -> void:
 	sand_pm.scale_min = 0.6
 	sand_pm.scale_max = 1.4
 	sand_pm.scale_curve = _curve([Vector2(0, 0.4), Vector2(0.3, 1.0), Vector2(1, 1.3)])
-	sand_pm.color_ramp = _gradient([Color(0.95, 0.8, 0.55, 0.9), Color(0.85, 0.68, 0.42, 0.5), Color(0.8, 0.62, 0.38, 0)])
+	sand_pm.color_ramp = _gradient([Color(0.78, 0.58, 0.32, 0.95), Color(0.66, 0.48, 0.27, 0.6), Color(0.6, 0.43, 0.24, 0)])
 	_proc[&"sand"] = sand_pm
 	_draw[&"sand"] = _quad(0.45, _billboard_mat(false))
 
@@ -176,7 +176,7 @@ func _build_effects() -> void:
 	dust_pm.scale_min = 0.6
 	dust_pm.scale_max = 1.2
 	dust_pm.scale_curve = _curve([Vector2(0, 0.5), Vector2(1, 1.5)])
-	dust_pm.color_ramp = _gradient([Color(0.9, 0.78, 0.58, 0.55), Color(0.85, 0.72, 0.5, 0)])
+	dust_pm.color_ramp = _gradient([Color(0.76, 0.62, 0.42, 0.55), Color(0.7, 0.56, 0.36, 0)])
 	_proc[&"dust"] = dust_pm
 	_draw[&"dust"] = _quad(0.6, _billboard_mat(false))
 
@@ -411,3 +411,22 @@ func prewarm() -> void:
 	motes(p)
 	glint(p)
 	ring(p, 0.5, 1.0, 0.2, Color.WHITE)
+
+
+## Floating damage number (training dummy).
+func damage_number(pos: Vector3, amount: float, color: Color = Color(1.0, 0.9, 0.6)) -> void:
+	var l := Label3D.new()
+	l.text = str(int(round(amount)))
+	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	l.no_depth_test = true
+	l.font_size = 64
+	l.outline_size = 12
+	l.modulate = color
+	l.outline_modulate = Color(0.1, 0.05, 0.0)
+	l.pixel_size = 0.006
+	l.position = pos + Vector3(randf_range(-0.3, 0.3), 0.0, randf_range(-0.3, 0.3))
+	_root().add_child(l)
+	var tw := l.create_tween()
+	tw.tween_property(l, "position:y", l.position.y + 1.2, 0.8).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	tw.parallel().tween_property(l, "modulate:a", 0.0, 0.8).set_delay(0.3)
+	tw.tween_callback(l.queue_free)
