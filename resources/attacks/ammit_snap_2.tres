@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="EnemyAttackData" format=3]
+
+[ext_resource type="Resource" path="res://resources/attacks/ammit_tail.tres" id="1_tv7sy"]
+[ext_resource type="Script" path="res://scripts/combat/data/enemy_attack_data.gd" id="2_y8yyt"]
+
+[resource]
+script = ExtResource("2_y8yyt")
+range_max = 5.0
+telegraph_lead = 0.22
+tracking_deg = 200.0
+move_speed = 9.0
+move_duration = 0.22
+combo_next_phase2 = ExtResource("1_tv7sy")
+combo_gap = 0.2
+id = &"ammit_snap_2"
+anim = &"snap_2"
+windup = 0.35
+active = 0.12
+recovery = 0.9
+damage = 26.0
+poise_damage = 0.0
+knockback = 5.0
+hitstop = 0.08
+shake = 0.4
+stamina_cost = 0.0
+energy_gain = 0.0
+lunge_distance = 0.0
+hitbox_size = Vector3(2.4, 1.8, 2.6)
+hitbox_forward = 3.2
+hitbox_height = 1.1

@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/data/enemy_attack_data.gd" id="1_7bq4e"]
+[ext_resource type="Resource" path="res://resources/attacks/scarab_bite.tres" id="2_qt7c3"]
+[ext_resource type="Script" path="res://scripts/combat/data/enemy_data.gd" id="3_buoef"]
+
+[resource]
+script = ExtResource("3_buoef")
+display_name = "Scarab"
+max_hp = 18.0
+max_poise = 4.0
+stagger_duration = 1.0
+ka_reward = 10
+walk_speed = 3.0
+run_speed = 6.0
+acceleration = 40.0
+turn_speed_deg = 720.0
+alert_time = 0.3
+strafe_radius = 2.8
+strafe_speed = 4.0
+think_interval = 0.15
+attacks = Array[ExtResource("1_7bq4e")]([ExtResource("2_qt7c3")])

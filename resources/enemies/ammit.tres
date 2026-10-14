@@ -1,0 +1,36 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/data/enemy_attack_data.gd" id="1_wx6on"]
+[ext_resource type="Resource" path="res://resources/attacks/ammit_charge.tres" id="2_bxhf3"]
+[ext_resource type="Resource" path="res://resources/attacks/ammit_snap_1.tres" id="3_vrtvj"]
+[ext_resource type="Resource" path="res://resources/attacks/ammit_tail.tres" id="4_ps6gt"]
+[ext_resource type="Resource" path="res://resources/attacks/ammit_leap.tres" id="5_2dk2b"]
+[ext_resource type="Resource" path="res://resources/attacks/ammit_summon.tres" id="6_2g256"]
+[ext_resource type="Resource" path="res://resources/attacks/ammit_burrow.tres" id="7_7hgmb"]
+[ext_resource type="Script" path="res://scripts/combat/data/enemy_data.gd" id="8_yapa7"]
+
+[resource]
+script = ExtResource("8_yapa7")
+display_name = "Ammit, Devourer of Hearts"
+max_hp = 900.0
+max_poise = 240.0
+poise_regen_delay = 4.0
+poise_regen_rate = 25.0
+flinch_duration = 0.0
+stagger_duration = 3.0
+knockback_resist = 0.95
+hyper_armor = true
+ka_reward = 2500
+walk_speed = 2.6
+run_speed = 5.5
+acceleration = 12.0
+turn_speed_deg = 150.0
+detect_radius = 40.0
+lose_radius = 90.0
+leash_radius = 90.0
+alert_time = 0.2
+strafe_radius = 6.5
+strafe_speed = 2.2
+uses_tokens = false
+think_interval = 0.2
+attacks = Array[ExtResource("1_wx6on")]([ExtResource("2_bxhf3"), ExtResource("3_vrtvj"), ExtResource("4_ps6gt"), ExtResource("5_2dk2b"), ExtResource("6_2g256"), ExtResource("7_7hgmb")])

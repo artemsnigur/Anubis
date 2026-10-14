@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="EnemyAttackData" format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/data/enemy_attack_data.gd" id="1_diwem"]
+
+[resource]
+script = ExtResource("1_diwem")
+range_min = 6.0
+range_max = 24.0
+angle_max = 120.0
+cooldown = 6.0
+weight = 2.0
+telegraph_lead = 0.4
+tracking_deg = 160.0
+move_type = 2
+move_speed = 11.5
+charge_turn_deg = 75.0
+id = &"ammit_charge"
+anim = &"charge"
+windup = 0.95
+active = 2.0
+recovery = 0.9
+damage = 30.0
+poise_damage = 0.0
+knockback = 10.0
+hitstop = 0.1
+shake = 0.6
+stamina_cost = 0.0
+energy_gain = 0.0
+lunge_distance = 0.0
+hitbox_size = Vector3(3, 2.2, 2.4)
+hitbox_forward = 2.6
+hitbox_height = 1.2

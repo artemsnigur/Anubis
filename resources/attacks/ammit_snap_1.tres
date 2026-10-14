@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="EnemyAttackData" format=3]
+
+[ext_resource type="Resource" path="res://resources/attacks/ammit_snap_2.tres" id="1_xfj5t"]
+[ext_resource type="Script" path="res://scripts/combat/data/enemy_attack_data.gd" id="2_xrqk7"]
+
+[resource]
+script = ExtResource("2_xrqk7")
+range_max = 5.0
+cooldown = 2.5
+weight = 3.0
+tracking_deg = 200.0
+move_speed = 7.0
+combo_next = ExtResource("1_xfj5t")
+combo_gap = 0.3
+id = &"ammit_snap_1"
+anim = &"snap_1"
+windup = 0.55
+active = 0.12
+recovery = 0.9
+damage = 24.0
+poise_damage = 0.0
+knockback = 4.0
+hitstop = 0.08
+shake = 0.35
+stamina_cost = 0.0
+energy_gain = 0.0
+lunge_distance = 0.0
+hitbox_size = Vector3(2.4, 1.8, 2.6)
+hitbox_forward = 3.2
+hitbox_height = 1.1

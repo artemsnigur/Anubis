@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="AnimationMap" format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/data/animation_map.gd" id="1_4av5t"]
+
+[resource]
+script = ExtResource("1_4av5t")
+fallbacks = {
+&"grabbed": &"hit_heavy",
+&"hit_heavy": &"hit",
+&"interact": &"cast",
+&"rest": &"heal"
+}
+states = Array[StringName]([&"light_1", &"light_2", &"light_3", &"heavy_windup", &"heavy_charge", &"heavy_release", &"dodge", &"hit", &"hit_heavy", &"death", &"heal", &"cast", &"rest", &"grabbed", &"interact"])
+looping = Array[StringName]([&"idle", &"walk", &"run", &"heavy_charge", &"grabbed"])
+xfade = 0.05

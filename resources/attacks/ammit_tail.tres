@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="EnemyAttackData" format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/data/enemy_attack_data.gd" id="1_y4o8f"]
+
+[resource]
+script = ExtResource("1_y4o8f")
+range_max = 6.0
+angle_max = 360.0
+cooldown = 4.0
+weight = 2.0
+telegraph = 1
+telegraph_lead = 0.35
+tracking_deg = 60.0
+move_type = 6
+id = &"ammit_tail"
+anim = &"tail"
+windup = 0.75
+active = 0.3
+recovery = 0.75
+damage = 28.0
+poise_damage = 0.0
+knockback = 9.0
+hitstop = 0.09
+shake = 0.5
+stamina_cost = 0.0
+energy_gain = 0.0
+lunge_distance = 0.0
+hitbox_size = Vector3(10.5, 1.6, 10.5)
+hitbox_forward = 0.0
+hitbox_height = 0.8

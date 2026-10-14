@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/data/enemy_attack_data.gd" id="1_c5qb6"]
+[ext_resource type="Resource" path="res://resources/attacks/mummy_slam.tres" id="2_qv46w"]
+[ext_resource type="Resource" path="res://resources/attacks/mummy_grab.tres" id="3_rqjff"]
+[ext_resource type="Script" path="res://scripts/combat/data/enemy_data.gd" id="4_0x4r3"]
+
+[resource]
+script = ExtResource("4_0x4r3")
+display_name = "Mummy Guardian"
+max_hp = 130.0
+max_poise = 70.0
+poise_regen_delay = 3.0
+poise_regen_rate = 20.0
+flinch_duration = 0.3
+stagger_duration = 2.2
+knockback_resist = 0.6
+hyper_armor = true
+ka_reward = 60
+walk_speed = 1.5
+run_speed = 2.4
+acceleration = 10.0
+turn_speed_deg = 200.0
+detect_radius = 9.0
+lose_radius = 20.0
+leash_radius = 24.0
+alert_time = 0.8
+strafe_radius = 3.0
+strafe_speed = 1.0
+think_interval = 0.3
+attacks = Array[ExtResource("1_c5qb6")]([ExtResource("2_qv46w"), ExtResource("3_rqjff")])

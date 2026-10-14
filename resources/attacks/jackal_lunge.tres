@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="EnemyAttackData" format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/data/enemy_attack_data.gd" id="1_8y5i8"]
+
+[resource]
+script = ExtResource("1_8y5i8")
+range_min = 3.5
+range_max = 7.5
+angle_max = 40.0
+cooldown = 4.0
+tracking_deg = 220.0
+move_speed = 17.0
+move_duration = 0.24
+id = &"jackal_lunge"
+anim = &"lunge"
+windup = 0.5
+active = 0.2
+recovery = 0.7
+damage = 15.0
+poise_damage = 0.0
+knockback = 5.0
+hitstop = 0.07
+shake = 0.25
+stamina_cost = 0.0
+energy_gain = 0.0
+lunge_distance = 0.0
+hitbox_size = Vector3(1.8, 1.4, 2)
+hitbox_forward = 0.9

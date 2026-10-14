@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="EnemyAttackData" format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/data/enemy_attack_data.gd" id="1_mlm22"]
+
+[resource]
+script = ExtResource("1_mlm22")
+range_max = 2.3
+angle_max = 360.0
+cooldown = 4.0
+telegraph = 1
+telegraph_lead = 0.25
+move_type = 6
+id = &"cobra_swipe"
+anim = &"swipe"
+windup = 0.5
+active = 0.14
+recovery = 0.6
+poise_damage = 0.0
+knockback = 7.0
+stamina_cost = 0.0
+energy_gain = 0.0
+lunge_distance = 0.0
+hitbox_size = Vector3(4.2, 1, 4.2)
+hitbox_forward = 0.0
+hitbox_height = 0.4

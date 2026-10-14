@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AttackData" format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/data/attack_data.gd" id="1_ltlji"]
+
+[resource]
+script = ExtResource("1_ltlji")
+id = &"eye_of_ra"
+anim = &"cast"
+windup = 0.18
+active = 0.05
+recovery = 0.3
+cancel_delay = 0.1
+damage = 38.0
+poise_damage = 25.0
+knockback = 4.0
+stamina_cost = 0.0
+energy_gain = 0.0
+lunge_distance = 0.0

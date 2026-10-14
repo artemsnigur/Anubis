@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="AnimationMap" format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/data/animation_map.gd" id="1_ss8xf"]
+
+[resource]
+script = ExtResource("1_ss8xf")
+states = Array[StringName]([&"alert", &"bite", &"hit", &"stagger", &"death"])

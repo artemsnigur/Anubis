@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="EnemyAttackData" format=3]
+
+[ext_resource type="Resource" path="res://resources/attacks/jackal_combo_3.tres" id="1_vae76"]
+[ext_resource type="Script" path="res://scripts/combat/data/enemy_attack_data.gd" id="2_n64q7"]
+
+[resource]
+script = ExtResource("2_n64q7")
+range_max = 2.8
+telegraph_lead = 0.18
+tracking_deg = 300.0
+move_speed = 6.0
+move_duration = 0.12
+combo_next = ExtResource("1_vae76")
+combo_gap = 0.14
+id = &"jackal_combo_2"
+anim = &"combo_2"
+windup = 0.22
+active = 0.1
+recovery = 0.6
+damage = 11.0
+poise_damage = 0.0
+knockback = 2.5
+stamina_cost = 0.0
+energy_gain = 0.0
+lunge_distance = 0.0

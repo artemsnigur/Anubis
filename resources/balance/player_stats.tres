@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="PlayerStats" format=3]
+
+[ext_resource type="Resource" path="res://resources/attacks/player_heavy.tres" id="1_4t5ik"]
+[ext_resource type="Script" path="res://scripts/combat/data/attack_data.gd" id="2_ybgxc"]
+[ext_resource type="Resource" path="res://resources/attacks/player_light_1.tres" id="3_s1r4p"]
+[ext_resource type="Resource" path="res://resources/attacks/player_light_2.tres" id="4_w3wjf"]
+[ext_resource type="Resource" path="res://resources/attacks/player_light_3.tres" id="5_q8p7k"]
+[ext_resource type="Resource" path="res://resources/attacks/player_eye_of_ra.tres" id="6_2lgn8"]
+[ext_resource type="Script" path="res://scripts/combat/data/player_stats.gd" id="7_pwj2u"]
+
+[resource]
+script = ExtResource("7_pwj2u")
+light_attacks = Array[ExtResource("2_ybgxc")]([ExtResource("3_s1r4p"), ExtResource("4_w3wjf"), ExtResource("5_q8p7k")])
+heavy_attack = ExtResource("1_4t5ik")
+ranged_attack = ExtResource("6_2lgn8")

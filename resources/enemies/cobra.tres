@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/data/enemy_attack_data.gd" id="1_n4wwp"]
+[ext_resource type="Resource" path="res://resources/attacks/cobra_spit.tres" id="2_heq0j"]
+[ext_resource type="Resource" path="res://resources/attacks/cobra_swipe.tres" id="3_04n56"]
+[ext_resource type="Script" path="res://scripts/combat/data/enemy_data.gd" id="4_aa02l"]
+
+[resource]
+script = ExtResource("4_aa02l")
+display_name = "Cobra Priestess"
+max_hp = 55.0
+max_poise = 22.0
+flinch_duration = 0.3
+stagger_duration = 1.8
+ka_reward = 65
+walk_speed = 1.8
+run_speed = 3.6
+acceleration = 14.0
+turn_speed_deg = 300.0
+detect_radius = 13.0
+lose_radius = 24.0
+alert_time = 0.5
+strafe_radius = 7.0
+strafe_speed = 1.6
+attacks = Array[ExtResource("1_n4wwp")]([ExtResource("2_heq0j"), ExtResource("3_04n56")])
+retreat_radius = 4.5

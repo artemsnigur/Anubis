@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="EnemyAttackData" format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/data/enemy_attack_data.gd" id="1_quttf"]
+
+[resource]
+script = ExtResource("1_quttf")
+range_min = 5.0
+range_max = 16.0
+angle_max = 140.0
+cooldown = 7.0
+weight = 1.5
+telegraph = 2
+telegraph_lead = 0.8
+tracking_deg = 220.0
+move_type = 3
+shockwave_radius = 8.0
+id = &"ammit_leap"
+anim = &"leap"
+windup = 0.8
+active = 0.7
+recovery = 1.1
+damage = 32.0
+poise_damage = 0.0
+knockback = 10.0
+hitstop = 0.1
+shake = 0.8
+stamina_cost = 0.0
+energy_gain = 0.0
+lunge_distance = 0.0
+hitbox_size = Vector3(5, 2, 5)
+hitbox_forward = 0.0
+hitbox_height = 1.0

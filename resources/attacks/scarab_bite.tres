@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="EnemyAttackData" format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/data/enemy_attack_data.gd" id="1_jjby0"]
+
+[resource]
+script = ExtResource("1_jjby0")
+range_max = 3.6
+angle_max = 50.0
+cooldown = 1.4
+telegraph_lead = 0.26
+tracking_deg = 420.0
+move_speed = 15.0
+move_duration = 0.18
+id = &"scarab_bite"
+anim = &"bite"
+windup = 0.42
+active = 0.16
+recovery = 0.55
+damage = 7.0
+poise_damage = 0.0
+knockback = 2.0
+hitstop = 0.04
+shake = 0.1
+stamina_cost = 0.0
+energy_gain = 0.0
+lunge_distance = 0.0
+hitbox_size = Vector3(0.9, 0.8, 1)
+hitbox_forward = 0.5
+hitbox_height = 0.35

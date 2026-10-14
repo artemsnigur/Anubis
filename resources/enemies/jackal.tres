@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/data/enemy_attack_data.gd" id="1_88buq"]
+[ext_resource type="Resource" path="res://resources/attacks/jackal_combo_1.tres" id="2_iaxpi"]
+[ext_resource type="Resource" path="res://resources/attacks/jackal_lunge.tres" id="3_g0wgc"]
+[ext_resource type="Script" path="res://scripts/combat/data/enemy_data.gd" id="4_jo4yq"]
+
+[resource]
+script = ExtResource("4_jo4yq")
+display_name = "Jackal Warrior"
+max_hp = 80.0
+max_poise = 38.0
+stagger_duration = 1.8
+knockback_resist = 0.2
+ka_reward = 70
+walk_speed = 2.4
+run_speed = 5.2
+acceleration = 25.0
+turn_speed_deg = 540.0
+detect_radius = 11.0
+alert_time = 0.4
+strafe_radius = 3.6
+strafe_speed = 2.6
+think_interval = 0.2
+attacks = Array[ExtResource("1_88buq")]([ExtResource("2_iaxpi"), ExtResource("3_g0wgc")])
+evade_chance = 0.35

@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="AnimationMap" format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/data/animation_map.gd" id="1_ta5qw"]
+
+[resource]
+script = ExtResource("1_ta5qw")
+states = Array[StringName]([&"alert", &"slam", &"grab", &"grab_hold", &"hit", &"stagger", &"death"])
+looping = Array[StringName]([&"idle", &"walk", &"run", &"grab_hold"])
+xfade = 0.1

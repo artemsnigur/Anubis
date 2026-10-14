@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="EnemyAttackData" format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/data/enemy_attack_data.gd" id="1_1se5w"]
+
+[resource]
+script = ExtResource("1_1se5w")
+range_max = 2.1
+angle_max = 50.0
+cooldown = 7.0
+telegraph = 1
+telegraph_lead = 0.24
+tracking_deg = 180.0
+move_type = 4
+move_speed = 5.0
+id = &"mummy_grab"
+anim = &"grab"
+windup = 0.85
+active = 0.22
+recovery = 1.0
+damage = 34.0
+poise_damage = 0.0
+knockback = 8.0
+hitstop = 0.05
+shake = 0.35
+stamina_cost = 0.0
+energy_gain = 0.0
+lunge_distance = 0.0
+hitbox_size = Vector3(1.6, 1.6, 1.8)
