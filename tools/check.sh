@@ -16,5 +16,8 @@ cd "$(dirname "$0")/.." || exit 1
   done
 } > override.cfg
 godot --headless --import > /dev/null 2>&1
-godot --headless --script res://tools/check_scripts.gd 2>&1 | grep -v "^\s*$" | grep -v "^Godot Engine" | grep -v "backtrace\|\[[0-9]\]"
+OUT=$(godot --headless --script res://tools/check_scripts.gd 2>&1 | grep -v "^\s*$" | grep -v "^Godot Engine" | grep -v "backtrace\|\[[0-9]\]")
+echo "$OUT"
+ERRS=$(echo "$OUT" | grep -c "SCRIPT ERROR")
+echo "check.sh: $ERRS script errors/warnings"
 rm -f override.cfg

@@ -5,7 +5,6 @@ extends RefCounted
 ## All solids are StaticBody3D on the "world" layer so navigation can bake from them.
 
 static var _mesh_cache: Dictionary = {}
-static var _flame_mat: StandardMaterial3D
 static var _ember_proc: ParticleProcessMaterial
 static var _ember_mesh: QuadMesh
 
@@ -283,17 +282,42 @@ static func brazier(parent: Node3D, pos: Vector3, energy: float = 3.0, light_ran
 	return body
 
 
-static func _flame(parent: Node3D, pos: Vector3, size: float) -> void:
-	if _flame_mat == null:
-		_flame_mat = StandardMaterial3D.new()
-		_flame_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		_flame_mat.albedo_color = Color(1.0, 0.6, 0.2)
-		_flame_mat.emission_enabled = true
-		_flame_mat.emission = Color(1.0, 0.55, 0.15)
-		_flame_mat.emission_energy_multiplier = 6.0
-	var fl := mesh(parent, _cyl_mesh(0.0, 0.11 * size, 0.38 * size, 6), _flame_mat, pos, Vector3.ZERO, Vector3.ONE, false)
-	fl.set_script(load("res://scripts/world/flame_wobble.gd"))
-	mesh(parent, _cyl_mesh(0.0, 0.07 * size, 0.24 * size, 6), Mats.get_mat(&"sun"), pos + Vector3(0, -0.04, 0), Vector3.ZERO, Vector3.ONE, false)
+static var _flame_mats: Dictionary = {}
+const FLAME_SHADER := preload("res://assets/shaders/flame.gdshader")
+
+
+## Shared flame materials: "fire" (torches), "osiris" (green altar fire), "ra" (white-gold).
+static func flame_material(kind: StringName) -> ShaderMaterial:
+	if _flame_mats.has(kind):
+		return _flame_mats[kind]
+	var m := ShaderMaterial.new()
+	m.shader = FLAME_SHADER
+	match kind:
+		&"osiris":
+			m.set_shader_parameter(&"color_core", Color(0.85, 1.0, 0.85))
+			m.set_shader_parameter(&"color_mid", Color(0.2, 1.0, 0.5))
+			m.set_shader_parameter(&"color_edge", Color(0.02, 0.45, 0.25))
+		&"ra":
+			m.set_shader_parameter(&"color_core", Color(1.0, 1.0, 0.95))
+			m.set_shader_parameter(&"color_mid", Color(1.0, 0.8, 0.35))
+			m.set_shader_parameter(&"color_edge", Color(0.9, 0.4, 0.1))
+	_flame_mats[kind] = m
+	return m
+
+
+## Billboard fire (flame.gdshader). The base of the flame sits at `pos`.
+static func _flame(parent: Node3D, pos: Vector3, size: float, kind: StringName = &"fire") -> MeshInstance3D:
+	var q := QuadMesh.new()
+	q.size = Vector2(0.42, 0.8) * size
+	q.center_offset = Vector3(0, 0.36 * size, 0)
+	var mi := MeshInstance3D.new()
+	mi.mesh = q
+	mi.material_override = flame_material(kind)
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.position = pos + Vector3(0, -0.06 * size, 0)
+	parent.add_child(mi)
+	mi.set_instance_shader_parameter(&"seed", randf() * 10.0)
+	return mi
 
 
 static func _embers(parent: Node3D, pos: Vector3) -> void:
@@ -317,7 +341,7 @@ static func _embers(parent: Node3D, pos: Vector3) -> void:
 		gt.gradient = g
 		_ember_proc.color_ramp = gt
 		_ember_mesh = QuadMesh.new()
-		_ember_mesh.size = Vector2(0.05, 0.05)
+		_ember_mesh.size = Vector2(0.07, 0.07)
 		var m := StandardMaterial3D.new()
 		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -325,6 +349,7 @@ static func _embers(parent: Node3D, pos: Vector3) -> void:
 		m.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
 		m.vertex_color_use_as_albedo = true
 		m.albedo_color = Color(2.0, 1.4, 0.8)
+		m.albedo_texture = Vfx.soft_texture()
 		_ember_mesh.material = m
 	var p := GPUParticles3D.new()
 	p.amount = 10

@@ -52,3 +52,21 @@
 - Placeholder rigs for all four with generated clips (idle/walk/run/attacks/alert/hit/stagger/death).
 - `tests/ai_test.tscn`: pathing around a wall, token limit (max 2 simultaneous attackers in a 6-scarab swarm) — PASS.
   Smoke test: all enemies cycle through Alert/Chase/Strafe/Attack/Flinch/Stagger/Dead and land hits.
+
+## Milestone 4 — souls-like loop ✅
+- `Level` base: builds world, bakes navmesh, spawns player/camera/UI, death flow, rest flow, world reset.
+- **Altars of Osiris** (kindle → rest): restore HP + Ankh charges, respawn every enemy, level-up menu, save;
+  last altar = respawn point. Green Osiris fire.
+- **Ka**: dropped by enemies (orbs fly to the player). On death all Ka goes into a pulsing **heart** at the last safe
+  ground position; touching it restores the Ka; dying again before that loses it for good.
+- Death screen "YOUR HEART HAS BEEN WEIGHED" (scales: heart sinks, feather rises).
+- **Leveling** (Vitality / Strength / Spirit), cost grows by 18 % per level (`resources/balance/leveling.tres`).
+- **Saving** to `user://duat_save.json`: last altar, Ka, levels, flags (shortcuts, boss, altars), collected rewards,
+  the heart (position + Ka), bonus Ankh, deaths, play time.
+- UI: HUD (HP with trailing damage bar, stamina, sun-disc energy, ankh charges, Ka plate, boss bar, prompts, banners),
+  level-up menu, pause + settings (volumes, shake, fullscreen), title screen (3D ushabti on a plinth).
+- Graphics: animated billboard flame shader (fbm teardrop, additive bloom) for torches / braziers / altars.
+- `tests/loop_test.tscn`: 23 checks (Ka from kills, rest restore/respawn/save, leveling, heart drop & pickup, heart
+  loss, respawn at altar, save/load round trip) — all PASS.
+- Fixed: Area3D pickups spawned in the same frame as a teleport saw the player's stale physics position
+  (heart now arms after 0.5 s and checks real distance).

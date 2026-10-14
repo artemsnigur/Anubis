@@ -41,6 +41,10 @@ func _ready() -> void:
 	_plane.size = Vector2(2.0, 2.0)
 
 
+func soft_texture() -> Texture2D:
+	return _soft_tex
+
+
 func _root() -> Node:
 	var scene := get_tree().current_scene
 	return scene if scene != null else get_tree().root

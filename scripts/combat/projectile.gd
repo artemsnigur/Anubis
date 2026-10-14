@@ -52,6 +52,7 @@ func setup_venom(p_shooter: Node3D, p_attack: AttackData, from: Vector3, target:
 
 
 func _ready() -> void:
+	add_to_group(&"transient")
 	_visual = Node3D.new()
 	add_child(_visual)
 	var mi := MeshInstance3D.new()

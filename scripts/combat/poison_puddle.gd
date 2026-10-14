@@ -16,7 +16,7 @@ var _attack := AttackData.new()
 
 
 func _ready() -> void:
-	add_to_group(&"hazards")
+	add_to_group(&"transient")
 	_mesh = MeshInstance3D.new()
 	var c := CylinderMesh.new()
 	c.top_radius = radius

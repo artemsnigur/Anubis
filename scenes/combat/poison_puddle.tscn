@@ -1,6 +1,6 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://didx4x7hgsjtc"]
 
-[ext_resource type="Script" path="res://scripts/combat/poison_puddle.gd" id="1"]
+[ext_resource type="Script" uid="uid://bp4i07i4gbv1d" path="res://scripts/combat/poison_puddle.gd" id="1"]
 
-[node name="PoisonPuddle" type="Node3D"]
+[node name="PoisonPuddle" type="Node3D" unique_id=567932784]
 script = ExtResource("1")
