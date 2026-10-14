@@ -26,6 +26,7 @@ HitStop="*res://scripts/systems/hit_stop.gd"
 CameraShake="*res://scripts/systems/camera_shake.gd"
 Vfx="*res://scripts/vfx/vfx.gd"
 DebugOverlay="*res://scripts/systems/debug_overlay.gd"
+FeelProbe="*res://scripts/systems/feel_probe.gd"
 
 [debug]
 

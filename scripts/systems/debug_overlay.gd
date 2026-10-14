@@ -1,11 +1,13 @@
 extends CanvasLayer
 ## Debug tools.
 ##  F3 - overlay with FPS and the current state of every state machine nearby.
+##        Includes the FeelProbe section (input latencies, lockouts in 60 Hz frames).
 ##  F4 - draws hitboxes (red when active) and hurtboxes (green, blue = invulnerable).
 
 var overlay_visible: bool = false
 var hitboxes_visible: bool = false
 var _label: Label
+var _feel: RichTextLabel
 var _panel: PanelContainer
 var _viz: Dictionary = {}   # Area3D -> MeshInstance3D
 var _mat_hit_on: StandardMaterial3D
@@ -28,10 +30,23 @@ func _ready() -> void:
 	_panel.position = Vector2(12, 12)
 	_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_panel)
+	var box := VBoxContainer.new()
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_panel.add_child(box)
 	_label = Label.new()
 	_label.add_theme_font_size_override(&"font_size", 15)
 	_label.add_theme_color_override(&"font_color", Color(0.85, 1.0, 0.85))
-	_panel.add_child(_label)
+	box.add_child(_label)
+	_feel = RichTextLabel.new()
+	_feel.bbcode_enabled = true
+	_feel.fit_content = true
+	_feel.scroll_active = false
+	_feel.autowrap_mode = TextServer.AUTOWRAP_OFF
+	_feel.custom_minimum_size = Vector2(760, 0)
+	_feel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_feel.add_theme_font_size_override(&"normal_font_size", 14)
+	_feel.add_theme_font_size_override(&"bold_font_size", 14)
+	box.add_child(_feel)
 	_panel.visible = false
 	_mat_hit_on = _viz_mat(Color(1.0, 0.1, 0.1, 0.45))
 	_mat_hit_off = _viz_mat(Color(1.0, 0.6, 0.1, 0.08))
@@ -62,6 +77,7 @@ func _unhandled_input(event: InputEvent) -> void:
 func _process(_delta: float) -> void:
 	if overlay_visible:
 		_label.text = _build_text()
+		_feel.text = FeelProbe.overlay_text()
 	if hitboxes_visible:
 		_update_viz()
 
