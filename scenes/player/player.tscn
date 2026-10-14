@@ -1,0 +1,130 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/player/player.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/rigs/hero_rig.gd" id="2"]
+[ext_resource type="Resource" path="res://resources/animation/hero_anim_map.tres" id="3"]
+[ext_resource type="Script" path="res://scripts/combat/health_component.gd" id="4"]
+[ext_resource type="Script" path="res://scripts/combat/poise_component.gd" id="5"]
+[ext_resource type="Script" path="res://scripts/combat/hurtbox_component.gd" id="6"]
+[ext_resource type="Script" path="res://scripts/combat/hitbox_component.gd" id="7"]
+[ext_resource type="Script" path="res://scripts/systems/fsm/state_machine.gd" id="8"]
+[ext_resource type="Script" path="res://scripts/player/states/move_state.gd" id="9"]
+[ext_resource type="Script" path="res://scripts/player/states/attack_state.gd" id="10"]
+[ext_resource type="Script" path="res://scripts/player/states/heavy_state.gd" id="11"]
+[ext_resource type="Script" path="res://scripts/player/states/dodge_state.gd" id="12"]
+[ext_resource type="Script" path="res://scripts/player/states/cast_state.gd" id="13"]
+[ext_resource type="Script" path="res://scripts/player/states/heal_state.gd" id="14"]
+[ext_resource type="Script" path="res://scripts/player/states/hurt_state.gd" id="15"]
+[ext_resource type="Script" path="res://scripts/player/states/grabbed_state.gd" id="16"]
+[ext_resource type="Script" path="res://scripts/player/states/busy_state.gd" id="17"]
+[ext_resource type="Script" path="res://scripts/player/states/dead_state.gd" id="18"]
+[ext_resource type="Script" path="res://scripts/player/player_input.gd" id="19"]
+[ext_resource type="Script" path="res://scripts/player/lock_on.gd" id="20"]
+[ext_resource type="Script" path="res://scripts/combat/weapon_trail.gd" id="21"]
+
+[sub_resource type="CapsuleShape3D" id="body_shape"]
+radius = 0.38
+height = 1.7
+
+[sub_resource type="CapsuleShape3D" id="hurt_shape"]
+radius = 0.45
+height = 1.7
+
+[sub_resource type="BoxShape3D" id="hit_shape"]
+size = Vector3(2.4, 1.4, 1.9)
+
+[sub_resource type="SphereShape3D" id="interact_shape"]
+radius = 1.7
+
+[node name="Player" type="CharacterBody3D"]
+collision_layer = 2
+collision_mask = 37
+floor_max_angle = 0.82
+floor_snap_length = 0.45
+script = ExtResource("1")
+faction = 0
+lock_height = 1.1
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.85, 0)
+shape = SubResource("body_shape")
+
+[node name="Visual" type="Node3D" parent="."]
+
+[node name="Rig" type="Node3D" parent="Visual"]
+script = ExtResource("2")
+anim_map = ExtResource("3")
+
+[node name="Health" type="Node" parent="."]
+script = ExtResource("4")
+
+[node name="Poise" type="Node" parent="."]
+script = ExtResource("5")
+max_poise = 0.0
+
+[node name="Hurtbox" type="Area3D" parent="."]
+script = ExtResource("6")
+faction = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Hurtbox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("hurt_shape")
+
+[node name="Hitbox" type="Area3D" parent="."]
+script = ExtResource("7")
+faction = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Hitbox"]
+shape = SubResource("hit_shape")
+
+[node name="StateMachine" type="Node" parent="."]
+script = ExtResource("8")
+initial_state = &"Move"
+
+[node name="Move" type="Node" parent="StateMachine"]
+script = ExtResource("9")
+
+[node name="Attack" type="Node" parent="StateMachine"]
+script = ExtResource("10")
+
+[node name="Heavy" type="Node" parent="StateMachine"]
+script = ExtResource("11")
+
+[node name="Dodge" type="Node" parent="StateMachine"]
+script = ExtResource("12")
+
+[node name="Cast" type="Node" parent="StateMachine"]
+script = ExtResource("13")
+
+[node name="Heal" type="Node" parent="StateMachine"]
+script = ExtResource("14")
+
+[node name="Hurt" type="Node" parent="StateMachine"]
+script = ExtResource("15")
+
+[node name="Grabbed" type="Node" parent="StateMachine"]
+script = ExtResource("16")
+
+[node name="Busy" type="Node" parent="StateMachine"]
+script = ExtResource("17")
+
+[node name="Dead" type="Node" parent="StateMachine"]
+script = ExtResource("18")
+
+[node name="PlayerInput" type="Node" parent="."]
+script = ExtResource("19")
+
+[node name="LockOn" type="Node3D" parent="."]
+script = ExtResource("20")
+
+[node name="WeaponTrail" type="MeshInstance3D" parent="."]
+script = ExtResource("21")
+
+[node name="InteractArea" type="Area3D" parent="."]
+collision_layer = 0
+collision_mask = 16
+monitorable = false
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="InteractArea"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("interact_shape")

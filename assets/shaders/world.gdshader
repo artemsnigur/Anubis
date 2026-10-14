@@ -34,6 +34,11 @@ uniform vec4 emission_color : source_color = vec4(0.0, 0.0, 0.0, 1.0);
 uniform float emission_energy = 0.0;
 uniform float sand_cover = 0.0;
 uniform vec4 sand_color : source_color = vec4(0.86, 0.70, 0.45, 1.0);
+// Paving: grout grid on upward faces (0 = off), per-slab tint variation.
+uniform float tile_size = 0.0;
+uniform vec4 grout_color : source_color = vec4(0.35, 0.27, 0.18, 1.0);
+uniform float tile_variation = 0.18;
+uniform float noise_contrast = 1.0;
 
 varying vec3 world_pos;
 varying vec3 world_normal;
@@ -81,7 +86,20 @@ void fragment() {
 	float big = triplanar(noise_tex, world_pos, n, tex_scale).r;
 	float fine = triplanar(noise_tex, world_pos, n, detail_scale).r;
 	float t = clamp(big * 0.7 + fine * 0.3, 0.0, 1.0);
+	t = clamp(0.5 + (t - 0.5) * noise_contrast, 0.0, 1.0);
 	vec3 col = mix(color_b.rgb, color_a.rgb, smoothstep(0.25, 0.75, t));
+	float grout = 0.0;
+	if (tile_size > 0.0 && n.y > 0.6) {
+		vec2 tp = world_pos.xz / tile_size;
+		// Running bond: offset every other row.
+		tp.x += step(1.0, mod(floor(tp.y), 2.0)) * 0.5;
+		vec2 cell = floor(tp);
+		vec2 f = fract(tp);
+		float h = fract(sin(dot(cell, vec2(12.9898, 78.233))) * 43758.5453);
+		col *= 1.0 - tile_variation * 0.5 + tile_variation * h;
+		float edge = min(min(f.x, 1.0 - f.x), min(f.y, 1.0 - f.y));
+		grout = 1.0 - smoothstep(0.015, 0.04, edge + (fine - 0.5) * 0.02);
+	}
 	// Horizontal sediment strata on vertical faces.
 	float strata = sin(world_pos.y * strata_scale * 6.2831 + big * 4.0) * 0.5 + 0.5;
 	col *= 1.0 - strata_strength * strata * (1.0 - abs(n.y));
@@ -92,6 +110,7 @@ void fragment() {
 	float rough = mix(roughness_value, 0.3, fleck);
 	// Wind-blown sand settling on upward faces.
 	float sand = sand_cover * smoothstep(0.55, 0.95, n.y) * smoothstep(0.3, 0.7, big);
+	col = mix(col, grout_color.rgb, grout * 0.85);
 	col = mix(col, sand_color.rgb, sand);
 	// Carved hieroglyph band on vertical faces.
 	vec3 em = emission_color.rgb * emission_energy;

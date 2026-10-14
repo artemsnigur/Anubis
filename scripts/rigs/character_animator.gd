@@ -52,7 +52,7 @@ func _build_state_machine(player: AnimationPlayer) -> AnimationNodeStateMachine:
 			continue
 		var n := AnimationNodeAnimation.new()
 		n.animation = clip
-		loco.add_blend_point(n, float(map.locomotion[logical]))
+		loco.add_blend_point(n, float(map.locomotion[logical]), -1, logical)
 	sm.add_node(LOCOMOTION, loco)
 	_states = [LOCOMOTION]
 	for logical: StringName in map.states:

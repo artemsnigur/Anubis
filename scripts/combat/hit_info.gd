@@ -16,6 +16,8 @@ var shake: float = 0.2
 var is_heavy: bool = false
 var is_projectile: bool = false
 var is_grab: bool = false
+## Damage over time (puddles, quicksand): no flinch, no hitstop, no knockback.
+var is_dot: bool = false
 ## Filled by the receiver.
 var was_blocked_by_iframes: bool = false
 var caused_stagger: bool = false

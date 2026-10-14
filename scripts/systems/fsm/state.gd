@@ -9,6 +9,11 @@ var actor: Node
 var time_in_state: float = 0.0
 
 
+## Called once after the machine assigned `machine` and `actor`.
+func on_setup() -> void:
+	return
+
+
 ## Called on entering. `msg` carries optional parameters from the transition.
 func enter(_msg: Dictionary) -> void:
 	return

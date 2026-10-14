@@ -19,6 +19,7 @@ func setup(p_actor: Node) -> void:
 			s.machine = self
 			s.actor = p_actor
 			states[StringName(s.name)] = s
+			s.on_setup()
 	if initial_state != &"" and states.has(initial_state):
 		current = states[initial_state]
 		current.time_in_state = 0.0

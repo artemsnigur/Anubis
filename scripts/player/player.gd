@@ -1,0 +1,411 @@
+class_name Player
+extends Combatant
+## The awakened ushabti. Movement, resources (HP, stamina, solar energy, Ankh charges),
+## action gating with input buffer + cancel windows, aim + soft aim assist, lock-on.
+
+signal resources_changed
+signal interact_target_changed(target: Node)
+signal death_finished
+
+const RA_PROJECTILE := preload("res://scenes/combat/projectile.tscn")
+
+@onready var input: PlayerInput = $PlayerInput
+@onready var lock_on: LockOn = $LockOn
+@onready var trail: WeaponTrail = $WeaponTrail
+@onready var interact_area: Area3D = $InteractArea
+
+var stats: PlayerStats
+var balance: BalanceConfig
+var stamina: float = 100.0
+var max_stamina: float = 100.0
+var energy: float = 0.0
+var ankh: int = 3
+var invulnerable_time: float = 0.0
+var last_safe_position: Vector3 = Vector3.ZERO
+var speed_multiplier: float = 1.0
+var hazard_count: int = 0
+var god_mode: bool = false
+var interactable: Node = null
+var game_camera: GameCamera
+var _stamina_delay: float = 0.0
+var _safe_timer: float = 0.0
+var _step_toggle: bool = false
+
+
+func _combatant_ready() -> void:
+	add_to_group(&"player")
+	stats = GameState.player_stats
+	balance = GameState.balance
+	faction = CombatTypes.Faction.PLAYER
+	hurtbox.faction = faction
+	hitbox.faction = faction
+	refresh_stats(true)
+	trail.setup(rig.get_socket(&"trail_base"), rig.get_socket(&"trail_tip"))
+	interact_area.area_entered.connect(_on_interact_area_changed.unbind(1))
+	interact_area.area_exited.connect(_on_interact_area_changed.unbind(1))
+	lock_on.player = self
+	last_safe_position = global_position
+	_find_camera.call_deferred()
+
+
+func _find_camera() -> void:
+	game_camera = get_tree().get_first_node_in_group(&"game_camera") as GameCamera
+	if game_camera != null:
+		input.camera = game_camera.camera
+
+
+## Re-reads max values from GameState (after level up / reward). `fill` restores everything.
+func refresh_stats(fill: bool) -> void:
+	var max_hp := GameState.max_hp()
+	health.setup(max_hp, fill)
+	max_stamina = stats.max_stamina
+	if fill:
+		stamina = max_stamina
+		ankh = GameState.max_ankh()
+	resources_changed.emit()
+
+
+func get_clip_table() -> Dictionary:
+	var s := GameState.player_stats
+	var t := {}
+	for a: AttackData in s.light_attacks:
+		t[a.anim] = {"windup": a.windup, "active": a.active, "recovery": a.recovery}
+	var h := s.heavy_attack
+	t[&"heavy_windup"] = {"length": h.windup}
+	t[&"heavy_release"] = {"windup": h.windup, "active": h.active, "recovery": h.recovery}
+	var r := s.ranged_attack
+	t[&"cast"] = {"windup": r.windup, "active": r.active, "recovery": r.recovery}
+	t[&"dodge"] = {"length": s.dodge_duration}
+	t[&"heal"] = {"length": s.heal_duration, "apply": s.heal_apply_time}
+	t[&"hit"] = {"length": s.hurt_duration}
+	t[&"hit_heavy"] = {"length": s.heavy_hurt_duration}
+	return t
+
+
+func _pre_update(dt: float, real_dt: float) -> void:
+	# Stamina regeneration.
+	if _stamina_delay > 0.0:
+		_stamina_delay -= dt
+	elif stamina < max_stamina:
+		stamina = minf(max_stamina, stamina + stats.stamina_regen * dt)
+		resources_changed.emit()
+	if invulnerable_time > 0.0:
+		invulnerable_time -= real_dt
+	hurtbox.invulnerable = invulnerable_time > 0.0 or god_mode or _state_iframes()
+	lock_on.update_lock(dt)
+	# Remember the last safe ground position (used to drop the Ka heart).
+	_safe_timer -= real_dt
+	if _safe_timer <= 0.0 and is_on_floor() and hazard_count == 0 and not is_dead:
+		_safe_timer = 0.25
+		last_safe_position = global_position
+
+
+func _state_iframes() -> bool:
+	return fsm.current != null and fsm.current.has_method(&"has_iframes") and bool(fsm.current.call(&"has_iframes"))
+
+
+func _process(_delta: float) -> void:
+	RenderingServer.global_shader_parameter_set(&"player_position", get_global_transform_interpolated().origin)
+
+
+# --- resources ------------------------------------------------------------------
+
+func has_stamina() -> bool:
+	return not stats.stamina_enabled or stamina > 0.0
+
+
+func spend_stamina(cost: float) -> void:
+	if not stats.stamina_enabled or cost <= 0.0:
+		return
+	stamina = maxf(stamina - cost, -15.0)
+	_stamina_delay = stats.stamina_regen_delay
+	resources_changed.emit()
+
+
+func add_energy(charges: float) -> void:
+	var before := int(floor(energy))
+	energy = minf(float(stats.max_energy), energy + charges * GameState.spirit_energy_multiplier())
+	if int(floor(energy)) > before:
+		AudioManager.play_event(&"charge_ready", null, -8.0)
+	resources_changed.emit()
+
+
+func can_cast() -> bool:
+	return energy >= 1.0
+
+
+func melee_multiplier() -> float:
+	return GameState.melee_multiplier()
+
+
+func grant_iframes(duration: float) -> void:
+	invulnerable_time = maxf(invulnerable_time, duration)
+
+
+# --- movement helpers ---------------------------------------------------------------
+
+## Camera-relative locomotion with snappy acceleration and a capped turn rate.
+func locomote(dir: Vector3, max_speed: float, dt: float, allow_face: bool = true) -> void:
+	var target := dir * max_speed * speed_multiplier
+	var accel := stats.acceleration if target.length() >= move_velocity.length() else stats.deceleration
+	move_velocity = move_velocity.move_toward(target, accel * dt)
+	if allow_face:
+		var t := lock_on.target
+		if t != null and move_velocity.length() < stats.run_speed * 0.6:
+			face_toward(direction_to_node(t), stats.turn_rate_deg, dt)
+		elif dir.length() > 0.1:
+			face_toward(dir, stats.turn_rate_deg, dt)
+	animator.set_locomotion_blend(move_velocity.length() / stats.run_speed)
+
+
+## Disables collisions with enemy bodies (dodging through swarms).
+func set_enemy_collision(enabled: bool) -> void:
+	set_collision_mask_value(3, enabled)
+
+
+# --- aiming ---------------------------------------------------------------------
+
+## Raw aim: cursor / right stick, else movement input, else facing.
+func raw_aim_direction() -> Vector3:
+	if lock_on.target != null:
+		return direction_to_node(lock_on.target)
+	var a := input.aim_direction(global_position)
+	if a != Vector3.ZERO:
+		return a
+	var m := input.move_world()
+	if m.length() > 0.2:
+		return m.normalized()
+	return forward()
+
+
+## Attack direction with soft aim assist: rotates toward the closest enemy inside
+## the assist cone and returns the extra step distance toward it.
+## Returns {"dir": Vector3, "step": float, "target": Node3D}
+func attack_aim(max_range: float = -1.0) -> Dictionary:
+	var dir := raw_aim_direction()
+	var result := {"dir": dir, "step": 0.0, "target": null}
+	if not balance.aim_assist_enabled:
+		return result
+	var rng := balance.aim_assist_range if max_range < 0.0 else max_range
+	var half_cone := deg_to_rad(balance.aim_assist_angle * 0.5)
+	var best: Combatant = lock_on.target as Combatant
+	var best_score := INF
+	if best == null:
+		for n in get_tree().get_nodes_in_group(&"enemies"):
+			var e := n as Combatant
+			if e == null or not e.is_targetable():
+				continue
+			var to := e.global_position - global_position
+			to.y = 0.0
+			var d := to.length()
+			if d > rng + e.body_radius or d < 0.01:
+				continue
+			var ang := absf(dir.signed_angle_to(to.normalized(), Vector3.UP))
+			if ang > half_cone:
+				continue
+			var score := d + ang * 2.0
+			if score < best_score:
+				best_score = score
+				best = e
+	if best == null:
+		return result
+	var to_t := best.global_position - global_position
+	to_t.y = 0.0
+	var dist := to_t.length()
+	if dist > 0.01:
+		var assisted := dir.slerp(to_t.normalized(), balance.aim_assist_strength).normalized()
+		if lock_on.target != null:
+			assisted = to_t.normalized()
+		result["dir"] = assisted
+		var stop := balance.aim_assist_stop_distance + best.body_radius
+		result["step"] = clampf(dist - stop, 0.0, balance.aim_assist_step)
+		result["target"] = best
+	return result
+
+
+# --- action gating -------------------------------------------------------------------
+
+## Starts a buffered action if allowed. Returns true if a transition happened.
+## flags: "attack", "dodge", "ranged", "heal", "interact"
+func try_actions(flags: Dictionary) -> bool:
+	if bool(flags.get("dodge", false)) and input.peek(&"dodge"):
+		if has_stamina():
+			input.consume(&"dodge")
+			fsm.transition_to(&"Dodge")
+			return true
+	if bool(flags.get("attack", false)):
+		if input.peek(&"attack_light") and has_stamina():
+			input.consume(&"attack_light")
+			fsm.transition_to(&"Attack", {"index": int(flags.get("next_index", 0))})
+			return true
+		if input.peek(&"attack_heavy") and has_stamina():
+			input.consume(&"attack_heavy")
+			fsm.transition_to(&"Heavy")
+			return true
+	if bool(flags.get("ranged", false)) and input.peek(&"ranged"):
+		input.consume(&"ranged")
+		if can_cast():
+			fsm.transition_to(&"Cast")
+			return true
+		AudioManager.play_event(&"no_energy")
+	if bool(flags.get("heal", false)) and input.peek(&"heal"):
+		input.consume(&"heal")
+		if ankh > 0 and health.current < health.max_health:
+			fsm.transition_to(&"Heal")
+			return true
+		AudioManager.play_event(&"ui_deny")
+	if bool(flags.get("interact", false)) and input.peek(&"interact"):
+		input.consume(&"interact")
+		if interactable != null and is_instance_valid(interactable) and bool(interactable.call(&"can_interact", self)):
+			interactable.call(&"interact", self)
+			return true
+	return false
+
+
+func handle_lock_input() -> void:
+	if input.consume(&"lock_on"):
+		lock_on.toggle()
+	if lock_on.target != null:
+		if input.consume(&"target_next"):
+			lock_on.switch_target(1)
+		elif input.consume(&"target_prev"):
+			lock_on.switch_target(-1)
+		var flick := input.consume_flick()
+		if flick != Vector2.ZERO:
+			lock_on.switch_target(1 if flick.x >= 0.0 else -1)
+	else:
+		input.consume(&"target_next")
+		input.consume(&"target_prev")
+
+
+# --- interaction -----------------------------------------------------------------
+
+func _on_interact_area_changed() -> void:
+	var best: Node = null
+	var best_d := INF
+	for a in interact_area.get_overlapping_areas():
+		var it := a as Node
+		if it == null or not it.has_method(&"can_interact"):
+			continue
+		if not bool(it.call(&"can_interact", self)):
+			continue
+		var d := (a as Node3D).global_position.distance_to(global_position)
+		if d < best_d:
+			best_d = d
+			best = it
+	if best != interactable:
+		interactable = best
+		interact_target_changed.emit(interactable)
+
+
+func refresh_interactable() -> void:
+	_on_interact_area_changed()
+
+
+# --- combat reactions -------------------------------------------------------------
+
+func _modify_incoming_damage(hit: HitInfo) -> float:
+	return hit.damage * balance.enemy_damage_mult
+
+
+func _on_hit_received(hit: HitInfo) -> void:
+	if is_dead:
+		return
+	super._on_hit_received(hit)
+	if god_mode:
+		health.heal(hit.damage)
+	resources_changed.emit()
+	if hit.is_dot:
+		return
+	var p := global_position + Vector3.UP * 1.1
+	Vfx.shards(p, -hit.direction + Vector3.UP * 0.4, 14 if hit.is_heavy else 9)
+	Vfx.hit_sparks(p, hit.direction, hit.is_heavy)
+	AudioManager.play_event(&"player_hurt", p)
+	CameraShake.add_trauma(balance.shake_on_player_hurt + (0.2 if hit.is_heavy else 0.0))
+
+
+func _react_to_hit(hit: HitInfo) -> void:
+	if hit.is_dot:
+		return
+	grant_iframes(stats.hurt_iframes)
+	if fsm.current != null and not fsm.current.can_be_interrupted():
+		return
+	if hit.is_grab:
+		return
+	fsm.transition_to(&"Hurt", {"heavy": hit.is_heavy or hit.knockback >= 7.0})
+
+
+func _on_death(_hit: HitInfo) -> void:
+	fsm.transition_to(&"Dead")
+
+
+func _on_hit_landed(target: Node3D, hit: HitInfo) -> void:
+	if hit.was_blocked_by_iframes:
+		return
+	if hit.attack != null and not hit.is_projectile:
+		add_energy(hit.attack.energy_gain)
+	var amount := hit.shake * (1.4 if hit.is_heavy else 1.0)
+	CameraShake.add_trauma(amount)
+	if target is Combatant:
+		var c := target as Combatant
+		c.motion.stretch_impulse(-0.12)
+
+
+func _footstep() -> void:
+	if not is_on_floor():
+		return
+	_step_toggle = not _step_toggle
+	var ev := &"footstep_stone" if global_position.y < -1.0 else &"footstep_sand"
+	AudioManager.play_event(ev, global_position)
+	if move_velocity.length() > 4.0 and _step_toggle:
+		Vfx.dust(global_position, 3, 0.7)
+
+
+## Spawns the Eye of Ra projectile from the left hand.
+func fire_eye_of_ra(dir: Vector3) -> void:
+	var proj := RA_PROJECTILE.instantiate() as Projectile
+	var origin := rig.get_socket(&"hand_l").global_position
+	origin.y = global_position.y + 1.1
+	proj.setup_ra(self, stats.ranged_attack, GameState.spirit_damage_multiplier(), dir, stats.ranged_projectile_speed, stats.ranged_range)
+	get_tree().current_scene.add_child(proj)
+	proj.global_position = origin
+	proj.reset_physics_interpolation()
+
+
+# --- respawn ------------------------------------------------------------------------
+
+func respawn_at(pos: Vector3, yaw: float) -> void:
+	is_dead = false
+	hurtbox.monitorable = true
+	teleport_to(pos, yaw)
+	refresh_stats(true)
+	energy = 0.0
+	invulnerable_time = 1.0
+	hazard_count = 0
+	speed_multiplier = 1.0
+	lock_on.release()
+	input.clear_buffer()
+	fsm.transition_to(&"Move")
+	animator.play_locomotion()
+	resources_changed.emit()
+
+
+func notify_death_finished() -> void:
+	death_finished.emit()
+
+
+func camera_look_ahead() -> Vector3:
+	var la := Vector3(move_velocity.x, 0.0, move_velocity.z) * 0.3
+	if lock_on.target != null and is_instance_valid(lock_on.target):
+		var to := lock_on.target.global_position - global_position
+		to.y = 0.0
+		la += to.limit_length(14.0) * 0.35
+	else:
+		var a := input.aim_direction(global_position)
+		la += a * 1.4
+	return la
+
+
+func get_debug_state() -> String:
+	return "PLAYER %s  hp %d  st %d  en %.2f  ankh %d%s" % [fsm.current_name(), int(health.current), int(stamina), energy, ankh,
+		"  [lock %s]" % lock_on.target.name if lock_on.target != null else ""]
