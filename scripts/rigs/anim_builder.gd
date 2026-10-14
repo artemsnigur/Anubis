@@ -100,6 +100,8 @@ static func ease_value(u: float, ease_type: int) -> float:
 
 
 func _append(dict: Dictionary, bone: String, t: float, v: Variant, ease_type: int) -> void:
+	if not rig.bones.has(bone):
+		return
 	if not dict.has(bone):
 		dict[bone] = []
 	var list: Array = dict[bone]

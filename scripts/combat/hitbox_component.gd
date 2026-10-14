@@ -11,8 +11,8 @@ var attacker: Node3D
 var attack: AttackData
 var damage_mult: float = 1.0
 var active: bool = false
-## Optional custom direction provider; default = attacker -> target.
-var radial: bool = false
+## Grab hits deal no damage/knockback themselves; the grabber handles the hold.
+var grab_mode: bool = false
 var _hit_entities: Array[Node] = []
 var _shape_node: CollisionShape3D
 var _query := PhysicsShapeQueryParameters3D.new()
@@ -98,6 +98,11 @@ func _scan() -> void:
 
 func _deliver(hb: HurtboxComponent) -> void:
 	var hit := HitInfo.from_attack(attack, attacker, faction, damage_mult)
+	if grab_mode:
+		hit.is_grab = true
+		hit.damage = 0.0
+		hit.knockback = 0.0
+		hit.hitstop = 0.05
 	var from := attacker.global_position if attacker != null else global_position
 	var to := hb.entity.global_position
 	var dir := to - from

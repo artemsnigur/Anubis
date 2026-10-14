@@ -14,6 +14,7 @@ signal defeated(enemy: EnemyBase)
 @export var voice_sound: StringName = &""
 ## Material burst on hit: "sand" or "sparks".
 @export var hit_burst: StringName = &"sand"
+@export var telegraph_color: Color = Color(1.0, 0.85, 0.45)
 
 @onready var nav: NavigationAgent3D = $NavAgent
 
@@ -304,8 +305,8 @@ func telegraph(a: EnemyAttackData) -> void:
 	var p := socket.global_position
 	match a.telegraph:
 		EnemyAttackData.Telegraph.GLINT:
-			Vfx.glint(p, Color(1.0, 0.85, 0.45), 1.3, 0.3)
-			flash_fx.flash(Color(1.0, 0.75, 0.3), 0.25, 0.35)
+			Vfx.glint(p, telegraph_color, 1.3, 0.3)
+			flash_fx.flash(telegraph_color, 0.25, 0.35)
 			AudioManager.play_event(&"telegraph", p)
 		EnemyAttackData.Telegraph.FLASH:
 			Vfx.glint(p, Color(1.0, 0.25, 0.15), 1.7, 0.35)
@@ -328,10 +329,8 @@ func _on_hit_received(hit: HitInfo) -> void:
 		return
 	super._on_hit_received(hit)
 	var p := hit.position
-	if hit_burst == &"sparks":
-		Vfx.hit_sparks(p, hit.direction, hit.is_heavy)
-	else:
-		Vfx.hit_sparks(p, hit.direction, hit.is_heavy)
+	Vfx.hit_sparks(p, hit.direction, hit.is_heavy)
+	if hit_burst != &"sparks":
 		Vfx.sand_burst(p, hit.direction, 18 if hit.is_heavy else 10)
 	AudioManager.play_event(&"hit_heavy" if hit.is_heavy else hit_sound, p)
 

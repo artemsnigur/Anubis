@@ -92,7 +92,7 @@ func _pre_update(dt: float, real_dt: float) -> void:
 		resources_changed.emit()
 	if invulnerable_time > 0.0:
 		invulnerable_time -= real_dt
-	hurtbox.invulnerable = invulnerable_time > 0.0 or god_mode or _state_iframes()
+	hurtbox.invulnerable = invulnerable_time > 0.0 or _state_iframes()
 	lock_on.update_lock(dt)
 	# Remember the last safe ground position (used to drop the Ka heart).
 	_safe_timer -= real_dt

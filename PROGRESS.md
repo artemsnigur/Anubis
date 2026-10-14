@@ -38,3 +38,17 @@
   poise break + stagger multiplier, dodge i-frames, heal + punished heal, Eye of Ra, input buffer out of a dodge,
   lock-on toggle) — all PASS.
 - Visual check (screenshots): flash, sparks, sand puffs, trail visible during swings.
+
+## Milestone 3 — enemies, AI, navigation ✅
+- Shared AI state machine (Idle/Patrol → Alert → Chase → Strafe → Attack → Flinch/Stagger → Dead, plus Return,
+  Retreat, Evade) driven by `EnemyData` / `EnemyAttackData` resources; NavigationAgent3D on a navmesh baked at
+  runtime from static colliders (`NavBaker`); separation steering; wall probes while strafing.
+- Attack tokens (`AIDirector`, max 2), readable telegraphs (gold glint / red flash for the grab, green for venom).
+- **Mummy Guardian**: hyper armour, overhead slam, grab (red flash cue → dodge; caught = lifted, 3 squeeze ticks,
+  thrown). **Scarab**: fast lunging bite, flips on its back when staggered. **Jackal Warrior**: 3-hit combo,
+  gap-closing lunge, sidestep hops, evades the player's swings (35 %). **Cobra Priestess**: hood-flare venom spit
+  (lobbed, leads the target) leaving a poison puddle (damage over time), retreats when approached, tail swipe when
+  cornered.
+- Placeholder rigs for all four with generated clips (idle/walk/run/attacks/alert/hit/stagger/death).
+- `tests/ai_test.tscn`: pathing around a wall, token limit (max 2 simultaneous attackers in a 6-scarab swarm) — PASS.
+  Smoke test: all enemies cycle through Alert/Chase/Strafe/Attack/Flinch/Stagger/Dead and land hits.

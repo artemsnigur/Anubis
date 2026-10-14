@@ -4,7 +4,12 @@ extends Node3D
 ## Each clip gets one row with `cols` evenly spaced frames.
 
 const RIGS := {
-	"hero": ["res://scripts/rigs/hero_rig.gd", "res://resources/animation/hero_anim_map.tres"],
+	"hero": ["res://scripts/rigs/hero_rig.gd", "res://resources/animation/hero_anim_map.tres", ""],
+	"mummy": ["res://scripts/rigs/mummy_rig.gd", "res://resources/animation/mummy_anim_map.tres", "res://resources/enemies/mummy.tres"],
+	"jackal": ["res://scripts/rigs/jackal_rig.gd", "res://resources/animation/jackal_anim_map.tres", "res://resources/enemies/jackal.tres"],
+	"cobra": ["res://scripts/rigs/cobra_rig.gd", "res://resources/animation/cobra_anim_map.tres", "res://resources/enemies/cobra.tres"],
+	"scarab": ["res://scripts/rigs/scarab_rig.gd", "res://resources/animation/scarab_anim_map.tres", "res://resources/enemies/scarab.tres"],
+	"ammit": ["res://scripts/rigs/ammit_rig.gd", "res://resources/animation/ammit_anim_map.tres", "res://resources/enemies/ammit.tres"],
 }
 
 var _args: Dictionary = {}
@@ -78,7 +83,24 @@ func _ready() -> void:
 	cam.make_current()
 
 
-func _clip_table(_rig_key: String) -> Dictionary:
+func _clip_table(rig_key: String) -> Dictionary:
+	var data_path: String = RIGS[rig_key][2]
+	if data_path != "":
+		var data := load(data_path) as EnemyData
+		var et := {}
+		var stack: Array = data.attacks.duplicate()
+		while not stack.is_empty():
+			var a := stack.pop_back() as EnemyAttackData
+			if a == null or et.has(a.anim):
+				continue
+			et[a.anim] = {"windup": a.windup, "active": a.active, "recovery": a.recovery, "lead": a.telegraph_lead}
+			if a.combo_next != null:
+				stack.append(a.combo_next)
+			if a.combo_next_phase2 != null:
+				stack.append(a.combo_next_phase2)
+		et[&"hit"] = {"length": maxf(data.flinch_duration, 0.2)}
+		et[&"stagger"] = {"length": data.stagger_duration}
+		return et
 	var s := GameState.player_stats
 	var t := {}
 	for a: AttackData in s.light_attacks:
