@@ -1,9 +1,9 @@
 [gd_resource type="Resource" script_class="AnimationMap" format=3]
 
-[ext_resource type="Script" path="res://scripts/combat/data/animation_map.gd" id="1_m0w6k"]
+[ext_resource type="Script" path="res://scripts/combat/data/animation_map.gd" id="1"]
 
 [resource]
-script = ExtResource("1_m0w6k")
-states = Array[StringName]([&"alert", &"charge_windup", &"charge", &"charge_end", &"crash", &"snap_1", &"snap_2", &"tail", &"leap", &"roar", &"summon", &"burrow", &"emerge", &"hit", &"stagger", &"death"])
-looping = Array[StringName]([&"idle", &"walk", &"run", &"charge"])
+script = ExtResource("1")
+states = Array[StringName]([&"alert", &"charge", &"crash", &"snap_1", &"snap_2", &"tail", &"leap", &"roar", &"summon", &"burrow", &"hit", &"stagger", &"death"])
+looping = Array[StringName]([&"idle", &"walk", &"run"])
 xfade = 0.12

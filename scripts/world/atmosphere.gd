@@ -36,8 +36,8 @@ const PRESETS: Dictionary = {
 	},
 	&"hall_rage": {
 		"sun_energy": 0.3, "sun_color": Color(1.0, 0.3, 0.25), "sun_shadows": false,
-		"ambient_color": Color(0.5, 0.12, 0.08), "ambient_energy": 0.9,
-		"fog_density": 0.022, "fog_albedo": Color(0.9, 0.35, 0.25), "fog_emission": Color(0.05, 0.006, 0.003),
+		"ambient_color": Color(0.46, 0.2, 0.17), "ambient_energy": 0.85,
+		"fog_density": 0.018, "fog_albedo": Color(0.85, 0.45, 0.35), "fog_emission": Color(0.035, 0.006, 0.003),
 		"depth_fog": 0.0, "fog_color": Color(0.3, 0.05, 0.03),
 		"exposure": 1.3, "glow": 1.1, "saturation": 1.15, "contrast": 1.14,
 		"music": "", "ambience": "amb_tomb", "reverb": 0.35,

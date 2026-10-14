@@ -17,6 +17,7 @@ var _frame: int = 0
 
 
 func _ready() -> void:
+	get_window().set_flag(Window.FLAG_NO_FOCUS, true)
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--") and a.contains("="):
 			var kv := a.substr(2).split("=", true, 1)

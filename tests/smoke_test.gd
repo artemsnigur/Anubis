@@ -30,6 +30,10 @@ var _done: bool = false
 
 
 func _ready() -> void:
+	# Watchdog: never hang a CI run.
+	get_tree().create_timer(300.0, true, false, true).timeout.connect(func() -> void:
+		print("smoke_test: TIMEOUT")
+		get_tree().quit(2))
 	_rng.seed = 1234
 	arena = (load("res://scenes/levels/test_arena.tscn") as PackedScene).instantiate()
 	arena.set("spawn_dummies", false)

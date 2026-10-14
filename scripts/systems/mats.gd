@@ -64,7 +64,7 @@ static func _create(mat_name: StringName) -> Material:
 		&"gold_world":
 			return _world(Color(1.0, 0.72, 0.26), Color(0.85, 0.55, 0.16), {"strata_strength": 0.0, "metallic_value": 0.9, "roughness_value": 0.36, "specular_value": 0.7, "noise_contrast": 0.5})
 		&"hall_floor":
-			return _world(Color(0.12, 0.13, 0.15), Color(0.06, 0.06, 0.08), {"strata_strength": 0.0, "occluder": false, "roughness_value": 0.3, "specular_value": 0.6, "sand_cover": 0.12, "tile_size": 2.0, "grout_color": Color(0.7, 0.55, 0.25), "tile_variation": 0.3, "noise_contrast": 0.5})
+			return _world(Color(0.12, 0.13, 0.15), Color(0.06, 0.06, 0.08), {"strata_strength": 0.0, "occluder": false, "roughness_value": 0.42, "specular_value": 0.5, "sand_cover": 0.0, "tile_size": 2.0, "grout_color": Color(0.7, 0.55, 0.25), "tile_variation": 0.3, "noise_contrast": 0.5, "normal_strength": 0.15})
 		# --- characters / props ---
 		&"faience":
 			var f := ShaderMaterial.new()
@@ -101,15 +101,15 @@ static func _create(mat_name: StringName) -> Material:
 			s.rim_tint = 0.2
 			return s
 		&"croc":
-			return _std(Color(0.20, 0.27, 0.16), 0.0, 0.7)
+			return _std(Color(0.26, 0.36, 0.2), 0.0, 0.6)
 		&"croc_belly":
 			return _std(Color(0.55, 0.52, 0.34), 0.0, 0.75)
 		&"lion":
-			return _std(Color(0.72, 0.50, 0.24), 0.0, 0.85)
+			return _std(Color(0.82, 0.58, 0.28), 0.0, 0.8)
 		&"mane":
 			return _std(Color(0.45, 0.25, 0.10), 0.0, 0.95)
 		&"hippo":
-			return _std(Color(0.42, 0.34, 0.33), 0.0, 0.7)
+			return _std(Color(0.5, 0.42, 0.42), 0.0, 0.6)
 		&"teeth":
 			return _std(Color(0.95, 0.92, 0.8), 0.0, 0.4)
 		&"bone":
@@ -153,6 +153,10 @@ static func _std(c: Color, metallic: float, roughness: float) -> StandardMateria
 	m.albedo_color = c
 	m.metallic = metallic
 	m.roughness = roughness
+	# Soft rim so characters separate from dark floors under the top-down camera.
+	m.rim_enabled = true
+	m.rim = 0.35
+	m.rim_tint = 0.4
 	return m
 
 

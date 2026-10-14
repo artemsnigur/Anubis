@@ -39,6 +39,7 @@ uniform float tile_size = 0.0;
 uniform vec4 grout_color : source_color = vec4(0.35, 0.27, 0.18, 1.0);
 uniform float tile_variation = 0.18;
 uniform float noise_contrast = 1.0;
+uniform float normal_strength = 1.0;
 // Desert sand: wind ripples (normal + shading) and view-dependent glitter.
 uniform float ripple_strength = 0.0;
 uniform float ripple_scale = 1.6;
@@ -191,6 +192,6 @@ void fragment() {
 	SPECULAR = specular_value;
 	EMISSION = em;
 	// Cheap normal perturbation from the noise for a chiselled look.
-	NORMAL_MAP = vec3(0.5 + (fine - 0.5) * 0.35 + ripple_n.x * 0.35, 0.5 + (big - 0.5) * 0.35 + ripple_n.z * 0.35, 1.0);
+	NORMAL_MAP = vec3(0.5 + (fine - 0.5) * 0.35 * normal_strength + ripple_n.x * 0.35, 0.5 + (big - 0.5) * 0.35 * normal_strength + ripple_n.z * 0.35, 1.0);
 	NORMAL_MAP_DEPTH = 0.6;
 }

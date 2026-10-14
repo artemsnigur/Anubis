@@ -5,7 +5,7 @@ cd "$(dirname "$0")/.." || exit 1
 OUT=$1; shift
 i=0
 for pos in "$@"; do
-  godot --path . --resolution 960x540 res://tests/visual/capture.tscn -- --scene=res://scenes/levels/necropolis.tscn --out=$OUT/tour$i --frames=${FRAMES:-150} --player=$pos > /dev/null 2>&1
+  sh tools/bg_godot.sh --resolution 960x540 res://tests/visual/capture.tscn -- --scene=res://scenes/levels/necropolis.tscn --out=$OUT/tour$i --frames=${FRAMES:-150} --player=$pos > /dev/null 2>&1
   mv $OUT/tour${i}_0.png $OUT/tour_$i.png 2>/dev/null
   i=$((i+1))
 done

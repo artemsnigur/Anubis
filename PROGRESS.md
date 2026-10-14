@@ -94,3 +94,22 @@
   gate, flag saved, navmesh re-bake shortens the route to 33 m — all PASS.
 - Performance (Apple M5, 1080p, MSAA 4x, SSAO, volumetric fog): 77–83 FPS, 107–350 draw calls.
 - Human check: walk the level; look at the camera framing in narrow corridors and at the stairs.
+
+## Milestone 6 — Ammit, Devourer of Hearts ✅
+- Placeholder rig: crocodile head with hinged toothed jaw and red eyes, lion forequarters + mane, hippo hindquarters,
+  armoured croc tail; full-timeline clips for charge, double snap, tail sweep, leap, roar, summon, burrow/erupt.
+- **Phase 1**: turning charge (limited turn rate; crashing into a wall or the scales stuns her for 2.2 s), double jaw
+  snap, sweeping 360° tail strike (favoured when the player is behind), leap onto a telegraphed circle with a
+  dodgeable expanding shockwave.
+- **Phase 2** (< 50 % HP): roar (pause, push-back, red lighting `hall_rage`), four quicksand pools (slow + damage over
+  time), scarab summons (max 6), faster combos (+15 % speed, snap-snap-tail), burrow → sand trail chasing the player →
+  ground circle → eruption.
+- Hall of Two Truths: giant swaying scales of Ma'at (heart vs feather), sand veil seals the entrance during the fight,
+  boss bar with name, camera zoom-out ×1.35, boss music. Victory: slow motion, white flash, Ka reward, exit gate opens,
+  veil drops, banner. Death / rest resets the hall (dormant Ammit, veil open, camera, pools).
+- `tests/boss_test.tscn`: fight start, veil, zoom, damage, phase 2 (lighting + quicksand), all seven attack types
+  observed across runs, victory flag, slow motion restored, exit gate, veil, minions, arena reset — PASS.
+- Fixed: the arena built the scales before its own position was set, which blocked the courtyard gate (caught by the
+  level test's navmesh checks).
+- Balance: Ammit 1300 HP / 300 poise.
+- Tooling: `tools/bg_godot.sh` runs windowed screenshot captures without stealing focus.

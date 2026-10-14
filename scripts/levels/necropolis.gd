@@ -37,7 +37,7 @@ const ROOMS := {
 
 ## Atmosphere zones, first match wins: [rect, preset, banner title, banner subtitle]
 var zones: Array = [
-	[Rect2(-18, -129, 36, 36), &"hall", "Hall of Two Truths", "Where hearts are weighed"],
+	[Rect2(-18, -129, 36, 40), &"hall", "Hall of Two Truths", "Where hearts are weighed"],
 	[Rect2(-32, -63, 12, 16), &"tomb", "Chamber of the Canopic Shrine", ""],
 	[Rect2(-14, -67, 28, 24), &"tomb", "Hall of Pillars", ""],
 	[Rect2(-8, -89, 16, 12), &"tomb", "Antechamber of Judgement", "The Devourer waits beyond the veil"],
@@ -311,7 +311,7 @@ func _build_altar_room() -> void:
 	Kit.dust_motes(self, Vector3(0, TY + 3.0, -83), Vector3(2.5, 3, 2.5), 80)
 	veil = SandVeil.new()
 	veil.width = 6.0
-	veil.height = 5.4
+	veil.height = 3.0
 	add_child(veil)
 	veil.position = Vector3(0, TY, -91.5)
 
@@ -390,8 +390,8 @@ func _build_arena() -> void:
 	if ResourceLoader.exists(BOSS_ARENA_SCRIPT):
 		boss_arena = (load(BOSS_ARENA_SCRIPT) as GDScript).new() as Node3D
 		boss_arena.name = "BossArena"
-		add_child(boss_arena)
 		boss_arena.position = Vector3((x0 + x1) * 0.5, TY, (z0 + z1) * 0.5)
+		add_child(boss_arena)
 
 
 # --- persistence / runtime -----------------------------------------------------------
@@ -433,6 +433,8 @@ func _process(delta: float) -> void:
 	for z: Array in zones:
 		if (z[0] as Rect2).has_point(p):
 			var preset: StringName = z[1]
+			if preset == &"hall" and boss_arena != null and bool(boss_arena.get("phase_two")):
+				preset = &"hall_rage"
 			if preset != _zone_current:
 				_zone_current = preset
 				atmosphere.apply_preset(preset)

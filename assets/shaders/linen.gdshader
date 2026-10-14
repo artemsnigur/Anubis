@@ -24,4 +24,6 @@ void fragment() {
 	vec3 col = linen_color.rgb * shade * mix(0.72, 1.0, edge);
 	ALBEDO = mix(col, dirt_color.rgb, dirt * 0.45);
 	ROUGHNESS = 0.92;
+	RIM = 0.4;
+	RIM_TINT = 0.3;
 }

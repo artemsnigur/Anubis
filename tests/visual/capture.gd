@@ -10,6 +10,10 @@ var _scene: Node
 
 
 func _ready() -> void:
+	# Stay out of the user's way: never take focus, sit behind other windows.
+	var w := get_window()
+	w.set_flag(Window.FLAG_NO_FOCUS, true)
+	w.set_flag(Window.FLAG_ALWAYS_ON_TOP, false)
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--") and a.contains("="):
 			var kv := a.substr(2).split("=", true, 1)

@@ -15,7 +15,7 @@ void fragment() {
 	float streak = fract(uv.y * 3.0 - TIME * speed * (0.7 + offs) + offs * 7.0);
 	float s = smoothstep(0.0, 0.6, streak) * (0.4 + 0.6 * hash(vec2(col_id, 4.0)));
 	float edge = smoothstep(0.0, 0.08, uv.x) * smoothstep(1.0, 0.92, uv.x) * smoothstep(1.0, 0.85, uv.y);
-	float a = clamp((0.35 + s * 0.65) * edge * density, 0.0, 1.0);
-	ALBEDO = sand_color.rgb * (0.8 + 0.4 * s);
-	ALPHA = a * 0.85;
+	float a = clamp((0.12 + s * 0.75) * edge * density, 0.0, 1.0);
+	ALBEDO = sand_color.rgb * (0.8 + 0.5 * s);
+	ALPHA = a * 0.7;
 }

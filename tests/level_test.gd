@@ -11,6 +11,10 @@ var _log: PackedStringArray = []
 
 
 func _ready() -> void:
+	# Watchdog: never hang a CI run.
+	get_tree().create_timer(300.0, true, false, true).timeout.connect(func() -> void:
+		print("level_test: TIMEOUT")
+		get_tree().quit(2))
 	SaveSystem.delete_save()
 	GameState.reset_progress()
 	level = (load("res://scenes/levels/necropolis.tscn") as PackedScene).instantiate() as Level

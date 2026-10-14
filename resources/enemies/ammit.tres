@@ -12,8 +12,8 @@
 [resource]
 script = ExtResource("8_yapa7")
 display_name = "Ammit, Devourer of Hearts"
-max_hp = 900.0
-max_poise = 240.0
+max_hp = 1300.0
+max_poise = 300.0
 poise_regen_delay = 4.0
 poise_regen_rate = 25.0
 flinch_duration = 0.0

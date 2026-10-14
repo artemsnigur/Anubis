@@ -14,6 +14,10 @@ var _log: PackedStringArray = []
 
 
 func _ready() -> void:
+	# Watchdog: never hang a CI run.
+	get_tree().create_timer(300.0, true, false, true).timeout.connect(func() -> void:
+		print("loop_test: TIMEOUT")
+		get_tree().quit(2))
 	SaveSystem.delete_save()
 	GameState.reset_progress()
 	arena = (load("res://scenes/levels/test_arena.tscn") as PackedScene).instantiate() as Level
