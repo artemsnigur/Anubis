@@ -20,12 +20,15 @@ func can_be_interrupted() -> bool:
 
 func physics_update(dt: float) -> void:
 	enemy.stop(dt, 10.0)
-	if time_in_state > 1.6 and not _sunk:
+	if time_in_state > 1.3 and not _sunk:
 		_sunk = true
 		enemy.motion.enabled = false
-		Vfx.sand_burst(enemy.global_position + Vector3.UP * 0.5, Vector3.UP, 20)
-		Vfx.dust(enemy.global_position, 10, 1.4)
+		var dur := 2.2 if enemy.is_in_group(&"boss") else 1.3
+		enemy.crumble(dur)
+		Vfx.sand_burst(enemy.global_position + Vector3.UP * 0.8, Vector3.UP, 26)
+		Vfx.dust(enemy.global_position, 12, 1.6)
 		var tw := enemy.create_tween()
-		tw.tween_property(enemy.visual, "position:y", -1.6, 1.2).set_ease(Tween.EASE_IN)
-		tw.parallel().tween_property(enemy.visual, "scale", Vector3(1.2, 0.3, 1.2), 1.2)
+		tw.tween_interval(dur * 0.5)
+		tw.tween_callback(func() -> void: Vfx.sand_burst(enemy.global_position + Vector3.UP * 0.3, Vector3.UP, 18))
+		tw.tween_property(enemy.visual, "position:y", -0.25, dur * 0.5)
 		tw.tween_callback(enemy.queue_free)

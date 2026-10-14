@@ -197,6 +197,7 @@ godot --headless res://tests/loop_test.tscn        # алтари, сердце,
 godot --headless res://tests/level_test.tscn       # пути по навмешу и физический проход уровня
 godot --headless res://tests/boss_test.tscn        # бой с Аммит (≈1.5 мин)
 godot --headless res://tests/model_rig_test.tscn   # замена модели через ModelRig
+godot --headless res://tests/full_run_test.tscn    # бот проходит весь срез от старта до победы
 ```
 
 - `tools/gen_audio.py` — синтез всех звуков и музыки в `assets/audio/`.

@@ -153,6 +153,8 @@ func _run() -> void:
 	_check(get_tree().get_nodes_in_group(&"ammit_minions").filter(func(m: Node) -> bool: return not bool(m.get("is_dead"))).is_empty(), "summoned scarabs die with Ammit")
 	# Reset after a death: fresh state, fight again, die, the arena resets.
 	GameState.set_flag(&"boss_defeated", false)
+	# A reset happens on death / rest: the player is back at an altar, outside the hall.
+	player.teleport_to((level.altars[&"judgement"] as Altar).spawn_point(), 0.0)
 	level.reset_world()
 	await _wait(0.5)
 	_check(arena.boss != null and arena.boss.fsm.is_in(&"Dormant"), "arena reset re-spawns a dormant Ammit")

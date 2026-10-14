@@ -552,3 +552,74 @@ static func dust_motes(parent: Node3D, center: Vector3, extents: Vector3, amount
 	p.visibility_aabb = AABB(-extents - Vector3.ONE, extents * 2.0 + Vector3.ONE * 2.0)
 	parent.add_child(p)
 	return p
+
+
+static var _water_mat: ShaderMaterial
+
+
+## Sunken reflecting pool with a stone rim, lotus pads and flowers (not walkable).
+static func pool(parent: Node3D, rect: Rect2, surface_y: float = 0.3) -> void:
+	var rim := Mats.get_mat(&"sandstone")
+	var t := 0.5
+	var c := Vector3(rect.position.x + rect.size.x * 0.5, 0.0, rect.position.y + rect.size.y * 0.5)
+	box(parent, c + Vector3(0, 0.25, -rect.size.y * 0.5 - t * 0.5), Vector3(rect.size.x + t * 2.0, 0.5, t), rim)
+	box(parent, c + Vector3(0, 0.25, rect.size.y * 0.5 + t * 0.5), Vector3(rect.size.x + t * 2.0, 0.5, t), rim)
+	box(parent, c + Vector3(-rect.size.x * 0.5 - t * 0.5, 0.25, 0), Vector3(t, 0.5, rect.size.y), rim)
+	box(parent, c + Vector3(rect.size.x * 0.5 + t * 0.5, 0.25, 0), Vector3(t, 0.5, rect.size.y), rim)
+	mesh(parent, _box_mesh(Vector3(rect.size.x + t * 2.0 + 0.1, 0.08, t + 0.1)), Mats.get_mat(&"turquoise_stone"), c + Vector3(0, 0.52, -rect.size.y * 0.5 - t * 0.5))
+	mesh(parent, _box_mesh(Vector3(rect.size.x + t * 2.0 + 0.1, 0.08, t + 0.1)), Mats.get_mat(&"turquoise_stone"), c + Vector3(0, 0.52, rect.size.y * 0.5 + t * 0.5))
+	# Invisible blocker so nobody walks on the water.
+	var blocker := StaticBody3D.new()
+	blocker.collision_layer = CombatTypes.LAYER_WORLD
+	blocker.position = c + Vector3(0, 1.0, 0)
+	var cs := CollisionShape3D.new()
+	var bs := BoxShape3D.new()
+	bs.size = Vector3(rect.size.x + 1.0, 2.0, rect.size.y + 1.0)
+	cs.shape = bs
+	blocker.add_child(cs)
+	parent.add_child(blocker)
+	if _water_mat == null:
+		_water_mat = ShaderMaterial.new()
+		_water_mat.shader = preload("res://assets/shaders/water.gdshader")
+		_water_mat.set_shader_parameter(&"noise_tex", preload("res://assets/textures/noise_stone.png"))
+	var pm := PlaneMesh.new()
+	pm.size = rect.size
+	var water := mesh(parent, pm, _water_mat, c + Vector3(0, surface_y, 0), Vector3.ZERO, Vector3.ONE, false)
+	water.layers = 1
+	var rng := RandomNumberGenerator.new()
+	rng.seed = int(rect.position.x * 13.0 + rect.position.y * 7.0)
+	var pad_mat := Mats.get_mat(&"cobra")
+	var petal := Mats.get_mat(&"feather")
+	for i in 9:
+		var p := c + Vector3(rng.randf_range(-rect.size.x * 0.42, rect.size.x * 0.42), surface_y + 0.02, rng.randf_range(-rect.size.y * 0.4, rect.size.y * 0.4))
+		var r := rng.randf_range(0.25, 0.45)
+		mesh(parent, _cyl_mesh(r, r, 0.02, 14), pad_mat, p, Vector3(0, rng.randf_range(0, 360), 0), Vector3.ONE, false)
+		if i % 3 == 0:
+			mesh(parent, _cyl_mesh(0.0, 0.14, 0.18, 6), petal, p + Vector3(0, 0.1, 0), Vector3(0, rng.randf_range(0, 60), 0), Vector3.ONE, false)
+			mesh(parent, PlaceholderRig.sphere(0.05, 0.1, 6), Mats.get_mat(&"gold"), p + Vector3(0, 0.15, 0), Vector3.ZERO, Vector3.ONE, false)
+
+
+## Clump of papyrus reeds swaying in the wind.
+static func papyrus(parent: Node3D, pos: Vector3, count: int, seed_value: int) -> void:
+	var root := Node3D.new()
+	root.position = pos
+	root.set_script(load("res://scripts/world/sway.gd"))
+	parent.add_child(root)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value
+	var stem_mat := Mats.get_mat(&"cobra")
+	var head_mat := Mats.get_mat(&"cobra_belly")
+	for i in count:
+		var stem := Node3D.new()
+		stem.position = Vector3(rng.randf_range(-0.45, 0.45), 0, rng.randf_range(-0.45, 0.45))
+		root.add_child(stem)
+		var h := rng.randf_range(1.4, 2.4)
+		var tilt := Vector3(rng.randf_range(-12, 12), 0, rng.randf_range(-12, 12))
+		var holder := Node3D.new()
+		holder.rotation_degrees = tilt
+		stem.add_child(holder)
+		mesh(holder, _cyl_mesh(0.018, 0.03, h, 5), stem_mat, Vector3(0, h * 0.5, 0), Vector3.ZERO, Vector3.ONE, false)
+		for k in 5:
+			var a := TAU * float(k) / 5.0 + rng.randf() * 0.5
+			mesh(holder, _cyl_mesh(0.004, 0.012, 0.32, 4), head_mat, Vector3(cos(a) * 0.08, h + 0.1, sin(a) * 0.08), Vector3(cos(a) * 40.0, 0, -sin(a) * 40.0), Vector3.ONE, false)
+	mesh(root, PlaceholderRig.sphere(0.36, 0.3, 10), Mats.get_mat(&"cobra"), Vector3(0, 0.05, 0), Vector3.ZERO, Vector3(1.0, 0.6, 1.0), false)

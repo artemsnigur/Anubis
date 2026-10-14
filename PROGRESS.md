@@ -128,3 +128,33 @@
 - Clean runs: `godot --headless --quit-after 600` (main + level) print no ERROR / WARNING; all 8 test scenes pass
   with zero errors and zero warnings (headless runs play no audio).
 - Documentation: `README.md` (Russian), `CREDITS.md`.
+
+## Graphics pass (after M7)
+- Soft blob shadows under every character, enemies crumble into glowing sand on death, reflecting lotus pool with
+  swaying papyrus in the courtyard, lower courtyard side walls (less occlusion), start moved off the south wall.
+
+## Milestone 8 — final verification ✅
+| Acceptance criterion | How it is verified |
+|---|---|
+| Opens in Godot 4 and runs with F5 without console errors | `godot --headless --editor --quit`, `godot --headless --quit-after 600` (main) and the level: no ERROR / WARNING lines |
+| Completable start → boss victory, no dead ends / stuck geometry | `tests/full_run_test.tscn` (bot plays the whole slice incl. side reward, both altars, Ammit, exit) and `tests/level_test.tscn` (navmesh paths + physical walks + shortcut) |
+| Responsive combat: buffer, cancels, hitstop, shake, VFX, trail, telegraphs | `tests/player_motion_test.tscn`, `tests/combat_test.tscn`, screenshots of trail / sparks / flash / glints |
+| Death, Ka heart, altars, leveling, saving | `tests/loop_test.tscn` (23 checks) |
+| All balance parameters in Resource files | `resources/attacks`, `resources/enemies`, `resources/balance`, `resources/animation` |
+| No TODO / pass stubs | `grep -rnE 'TODO|FIXME|^\s*pass\s*$' scripts tests tools` → 0 matches |
+| README in Russian (controls, running, model replacement) | `README.md` |
+| CREDITS.md | `CREDITS.md` (no external assets) |
+
+Bot playthrough: ~130 s of game time at full aggression with god mode (it absorbed ~850 damage). A human who
+explores, dodges and dies a few times should land in the 10–15 minute target; Ammit has 1300 HP / 300 poise.
+
+### What a human should look at (cannot be judged from logs)
+- Combat feel on real hardware: hitstop length, shake strength, input buffer, dodge distance.
+- Readability of the placeholder animations from the 3/4 camera, especially Ammit's telegraphs (charge, tail, leap
+  circle, burrow circle) — are the windups long enough?
+- Camera framing on the tomb stairs and in the 4 m trap corridor; dither radius around the hero.
+- Audio mix of the synthesised sounds and the seams of the music loops.
+- Difficulty curve (mummy grab, jackal combos, cobra puddles, boss phase 2) and the Ka / level costs.
+- Performance on a mid-range PC (measured: 77–83 FPS at 1080p on an Apple M5 laptop GPU, MSAA 4×, SSAO,
+  volumetric fog).
+- Gamepad mapping and prompt glyphs on a physical controller.

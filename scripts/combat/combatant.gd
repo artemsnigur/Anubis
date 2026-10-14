@@ -60,8 +60,60 @@ func _ready() -> void:
 	motion = ProceduralMotion.new()
 	motion.setup(self, visual)
 	flash_fx = FlashEffect.new(rig)
+	_add_blob_shadow()
 	_combatant_ready()
 	fsm.setup(self)
+
+
+const CRUMBLE_SHADER := preload("res://assets/shaders/crumble.gdshader")
+static var _blob_texture: GradientTexture2D
+
+var blob_shadow: Decal
+
+
+## Soft dark disc projected under the character so it stays grounded where the
+## sun casts no shadows (tomb). Character meshes move to render layer 2 so the
+## decal (cull mask = layer 1) only darkens the floor.
+func _add_blob_shadow() -> void:
+	if _blob_texture == null:
+		var g := Gradient.new()
+		g.offsets = PackedFloat32Array([0.0, 0.55, 1.0])
+		g.colors = PackedColorArray([Color(0, 0, 0, 0.75), Color(0, 0, 0, 0.4), Color(0, 0, 0, 0.0)])
+		_blob_texture = GradientTexture2D.new()
+		_blob_texture.gradient = g
+		_blob_texture.fill = GradientTexture2D.FILL_RADIAL
+		_blob_texture.fill_from = Vector2(0.5, 0.5)
+		_blob_texture.fill_to = Vector2(1.0, 0.5)
+		_blob_texture.width = 64
+		_blob_texture.height = 64
+	blob_shadow = Decal.new()
+	blob_shadow.texture_albedo = _blob_texture
+	var r := body_radius * 2.8
+	blob_shadow.size = Vector3(r, 1.6, r)
+	blob_shadow.position = Vector3(0, 0.6, 0)
+	blob_shadow.cull_mask = 1
+	blob_shadow.albedo_mix = 1.0
+	blob_shadow.upper_fade = 0.2
+	blob_shadow.lower_fade = 0.4
+	add_child(blob_shadow)
+	for m in rig.get_meshes():
+		m.layers = 2
+
+
+## Death effect: every mesh switches to a sand material that crumbles from the top down.
+func crumble(duration: float = 1.4) -> void:
+	var mat := ShaderMaterial.new()
+	mat.shader = CRUMBLE_SHADER
+	mat.set_shader_parameter(&"base_y", global_position.y - 0.2)
+	mat.set_shader_parameter(&"height", lock_height * 1.6 + 0.6)
+	for m in rig.get_meshes():
+		if is_instance_valid(m):
+			m.material_override = mat
+			m.material_overlay = null
+	if blob_shadow != null:
+		create_tween().tween_property(blob_shadow, "modulate:a", 0.0, duration)
+	var tw := create_tween()
+	tw.tween_method(func(v: float) -> void: mat.set_shader_parameter(&"progress", v), 0.0, 1.0, duration).set_ease(Tween.EASE_IN)
 
 
 ## Subclass hook, called before the state machine starts.

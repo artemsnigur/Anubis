@@ -61,7 +61,7 @@ var _ended: bool = false
 
 func _init() -> void:
 	level_name = "The Necropolis"
-	start_position = Vector3(0, 0.1, 29)
+	start_position = Vector3(0, 0.1, 26.5)
 	start_yaw = 0.0
 	initial_atmosphere = &"courtyard"
 
@@ -136,10 +136,10 @@ func _build_courtyard() -> void:
 	var wm := &"courtyard_wall"
 	_wall_x(-1.0, -18.0, -3.0, 6.0, 2.0, wm)
 	_wall_x(-1.0, 3.0, 18.0, 6.0, 2.0, wm)
-	_wall_x(33.0, -18.0, 18.0, 6.0, 2.0, wm)
-	_wall_z(-17.0, -2.0, 34.0, 6.0, 2.0, wm)
-	_wall_z(17.0, -2.0, 4.0, 6.0, 2.0, wm)
-	_wall_z(17.0, 8.0, 34.0, 6.0, 2.0, wm)
+	_wall_x(33.0, -18.0, 18.0, 4.0, 2.0, wm)
+	_wall_z(-17.0, -2.0, 34.0, 4.0, 2.0, wm)
+	_wall_z(17.0, -2.0, 4.0, 4.5, 2.0, wm)
+	_wall_z(17.0, 8.0, 34.0, 4.0, 2.0, wm)
 	Kit.pylon(nav_region, Vector3(-7.5, 0, -1.5), 8.0, 3.2, 9.0)
 	Kit.pylon(nav_region, Vector3(7.5, 0, -1.5), 8.0, 3.2, 9.0)
 	Kit.arch(nav_region, Vector3(0, 0, -1.0), 0.0, 6.0, 6.5, 2.4)
@@ -164,12 +164,16 @@ func _build_courtyard() -> void:
 	Kit.brazier(nav_region, Vector3(-12, 0, 21.5), 2.2, 7.0)
 	Kit.brazier(nav_region, Vector3(-12, 0, 28.5), 2.2, 7.0)
 	Kit.offering_table(nav_region, Vector3(0, 0, 4.5), 0.0)
+	# Reflecting lotus pool in front of the start, papyrus at its corners.
+	Kit.pool(nav_region, Rect2(-4.5, 17.0, 9.0, 4.5))
+	for pp: Vector3 in [Vector3(-5.6, 0, 16.4), Vector3(5.6, 0, 22.3), Vector3(-5.4, 0, 22.6), Vector3(5.2, 0, 16.2)]:
+		Kit.papyrus(self, pp, 11, int(pp.x * 10.0 + pp.z))
 	Kit.jars(self, Vector3(14, 0, 30), 5, 21)
 	Kit.jars(self, Vector3(-14, 0, 9), 4, 22)
 	Kit.wind_sand(self, Vector3(4, 0.5, 16), Vector3(16, 0.4, 16))
 	# Enemies: tutorial mummies and a scarab swarm.
-	var patrol: Array[Vector3] = [Vector3(-5, 0, 17), Vector3(5, 0, 17)]
-	_spawner(MUMMY, Vector3(0, 0, 17), 180.0, 1, patrol)
+	var patrol: Array[Vector3] = [Vector3(-5, 0, 11.5), Vector3(5, 0, 11.5)]
+	_spawner(MUMMY, Vector3(0, 0, 11.5), 180.0, 1, patrol)
 	_spawner(MUMMY, Vector3(-7, 0, 7), 150.0)
 	_spawner(SCARAB, Vector3(8, 0, 10), 200.0, 5)
 

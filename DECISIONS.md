@@ -66,3 +66,12 @@ Routine decisions taken autonomously while building the slice. Newest at the bot
 - `ModelRig` + `AnimationMap` are the only things that change when real models arrive. Gameplay timings stay in
   AttackData; the rig injects method tracks at those times. Several actions may share one imported clip — the rig
   duplicates it per action so event tags stay unique.
+
+## Graphics pass
+- Characters get a soft blob-shadow `Decal` (character meshes on render layer 2, decal cull mask = layer 1) so they
+  stay grounded in the tomb where the sun casts no shadows.
+- Enemy deaths: every mesh switches to a shared "crumble" shader (noise + height threshold with an ember edge) —
+  the body turns to sand from the top down; works on any model.
+- Fire is a Y-billboard fbm shader (`flame.gdshader`) with per-instance seeds; water is a raised basin
+  (`water.gdshader`) because the courtyard floor is a single slab.
+- Creature `StandardMaterial3D`s have a soft rim term for silhouette readability from above.
