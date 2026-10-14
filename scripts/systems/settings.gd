@@ -10,6 +10,7 @@ var music_volume: float = 0.6
 var sfx_volume: float = 0.85
 var shake_strength: float = 1.0
 var fullscreen: bool = false
+var camera_orthographic: bool = false
 
 
 func _ready() -> void:
@@ -25,6 +26,7 @@ func load_settings() -> void:
 		sfx_volume = float(cfg.get_value("audio", "sfx", sfx_volume))
 		shake_strength = float(cfg.get_value("camera", "shake", shake_strength))
 		fullscreen = bool(cfg.get_value("display", "fullscreen", fullscreen))
+		camera_orthographic = bool(cfg.get_value("camera", "orthographic", camera_orthographic))
 	apply()
 
 
@@ -35,6 +37,7 @@ func save_settings() -> void:
 	cfg.set_value("audio", "sfx", sfx_volume)
 	cfg.set_value("camera", "shake", shake_strength)
 	cfg.set_value("display", "fullscreen", fullscreen)
+	cfg.set_value("camera", "orthographic", camera_orthographic)
 	cfg.save(PATH)
 
 
@@ -56,6 +59,7 @@ func set_value(key: StringName, value: Variant) -> void:
 		&"sfx_volume": sfx_volume = float(value)
 		&"shake_strength": shake_strength = float(value)
 		&"fullscreen": fullscreen = bool(value)
+		&"camera_orthographic": camera_orthographic = bool(value)
 	apply()
 	save_settings()
 

@@ -200,6 +200,7 @@ func on_boss_defeated(_b: Ammit) -> void:
 	fight_active = false
 	phase_two = false
 	GameState.set_flag(&"boss_defeated", true)
+	GameState.mark_collected(&"feather_of_maat")
 	HitStop.slow_motion(0.25, 1.8)
 	_level.fader.flash(Color(1.0, 0.95, 0.8), 1.4, 0.95)
 	_level.screen_fx.punch(0.02)

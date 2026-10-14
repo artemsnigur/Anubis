@@ -16,8 +16,8 @@ const EVENTS: Dictionary = {
 	&"enemy_swing": ["whoosh_heavy", -5.0, 0.75, 0.9],
 	&"hit_enemy": ["hit_flesh", -2.0, 0.9, 1.1],
 	&"hit_heavy": ["hit_heavy", 0.0, 0.9, 1.05],
-	&"hit_stone": ["hit_stone", -3.0, 0.9, 1.1],
-	&"player_hurt": ["faience_crack", -1.0, 0.95, 1.08],
+	&"hit_stone": ["hit_stone", 0.0, 0.9, 1.1],
+	&"player_hurt": ["faience_crack", 3.0, 0.95, 1.08],
 	&"dodge": ["dodge_roll", -5.0, 0.95, 1.1],
 	&"footstep_sand": ["step_sand", -15.0, 0.85, 1.15],
 	&"footstep_stone": ["step_stone", -14.0, 0.85, 1.15],
@@ -51,7 +51,7 @@ const EVENTS: Dictionary = {
 	&"gate_open": ["gate_grind", -2.0, 0.95, 1.0],
 	&"lever": ["lever_clunk", -2.0, 1.0, 1.0],
 	&"spike_click": ["spike_click", -4.0, 1.0, 1.0],
-	&"spikes": ["spikes_out", -2.0, 0.95, 1.05],
+	&"spikes": ["spikes_out", 2.0, 0.95, 1.05],
 	&"veil": ["sand_veil", -2.0, 1.0, 1.0],
 	&"reward": ["reward", -1.0, 1.0, 1.0],
 	&"victory": ["victory", 0.0, 1.0, 1.0],
@@ -73,10 +73,15 @@ var _ambience: AudioStreamPlayer
 var _ambience_name: String = ""
 var _reverb: AudioEffectReverb
 var _event_cooldowns: Dictionary = {}
+## Headless runs (tests) play no audio: the dummy audio driver may not release
+## playbacks before the process exits (reported as leaked resources).
+var _headless: bool = false
 
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	_headless = DisplayServer.get_name() == "headless"
+	get_tree().auto_accept_quit = false
 	_setup_buses()
 	_load_library()
 	for i in POOL_3D:
@@ -178,6 +183,8 @@ func play_event(event: StringName, pos: Variant = null, volume_offset: float = 0
 
 
 func play(sound: String, pos: Variant = null, volume_db: float = 0.0, pitch: float = 1.0) -> void:
+	if _headless:
+		return
 	var stream := _pick(sound)
 	if stream == null:
 		return
@@ -201,7 +208,7 @@ func play(sound: String, pos: Variant = null, volume_db: float = 0.0, pitch: flo
 
 
 func play_music(track: String, fade_time: float = 2.0) -> void:
-	if track == _music_name:
+	if track == _music_name or _headless:
 		return
 	_music_name = track
 	var old := _music_current
@@ -229,7 +236,7 @@ func stop_music(fade_time: float = 2.0) -> void:
 
 
 func play_ambience(track: String, volume_db: float = -10.0) -> void:
-	if track == _ambience_name:
+	if track == _ambience_name or _headless:
 		return
 	_ambience_name = track
 	var stream := _pick(track)
@@ -259,3 +266,36 @@ func _make_looping(stream: AudioStream) -> void:
 			wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
 			wav.loop_begin = 0
 			wav.loop_end = int(wav.get_length() * float(wav.mix_rate))
+
+
+## Stop and release every stream on shutdown (no leaked playbacks at exit).
+func _exit_tree() -> void:
+	var players: Array[Node] = []
+	players.append_array(_pool_3d)
+	players.append_array(_pool_2d)
+	players.append_array([_music_a, _music_b, _ambience])
+	for p in players:
+		if p is AudioStreamPlayer:
+			(p as AudioStreamPlayer).stop()
+			(p as AudioStreamPlayer).stream = null
+		elif p is AudioStreamPlayer3D:
+			(p as AudioStreamPlayer3D).stop()
+			(p as AudioStreamPlayer3D).stream = null
+	_library.clear()
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST:
+		quit_game()
+
+
+## Clean shutdown: silence everything, let the audio thread release the playbacks, quit.
+func quit_game() -> void:
+	for p: Node in get_children():
+		if p is AudioStreamPlayer:
+			(p as AudioStreamPlayer).stop()
+		elif p is AudioStreamPlayer3D:
+			(p as AudioStreamPlayer3D).stop()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	get_tree().quit()

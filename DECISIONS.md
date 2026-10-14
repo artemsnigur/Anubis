@@ -55,3 +55,14 @@ Routine decisions taken autonomously while building the slice. Newest at the bot
   narrow-FOV 3/4 camera keeps seeing the floor; anything taller hides too much of the room.
 - Closed gates are baked into the navmesh (gate layer is parsed); opening one re-bakes on a worker thread.
 - Atmosphere zones are rectangles checked every 0.2 s (more robust than Area3D signals across teleports).
+
+## Audio
+- All audio is synthesised by `tools/gen_audio.py` (stdlib-only Python), so the slice has no licensing questions.
+  Music uses the Hijaz (Phrygian dominant) scale for an Egyptian colour without copying any existing piece.
+- Headless runs (tests) play no audio: the dummy driver does not always release playbacks before exit, which Godot
+  reports as leaked resources. Real runs quit through `AudioManager.quit_game()` (stop all, wait two frames).
+
+## Asset swapping
+- `ModelRig` + `AnimationMap` are the only things that change when real models arrive. Gameplay timings stay in
+  AttackData; the rig injects method tracks at those times. Several actions may share one imported clip — the rig
+  duplicates it per action so event tags stay unique.

@@ -99,7 +99,7 @@ func _build_ui() -> void:
 	_new = UIStyle.button("New Game", _on_new_game)
 	_menu.add_child(_new)
 	_menu.add_child(UIStyle.button("Settings", _on_settings))
-	_menu.add_child(UIStyle.button("Quit", func() -> void: get_tree().quit()))
+	_menu.add_child(UIStyle.button("Quit", func() -> void: AudioManager.quit_game()))
 	_settings = SettingsPanel.new()
 	_settings.visible = false
 	_settings.closed.connect(_on_settings_closed)

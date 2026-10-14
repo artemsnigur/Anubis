@@ -113,3 +113,18 @@
   level test's navmesh checks).
 - Balance: Ammit 1300 HP / 300 poise.
 - Tooling: `tools/bg_godot.sh` runs windowed screenshot captures without stealing focus.
+
+## Milestone 7 — UI, menus, audio, polish, performance ✅
+- **Audio**: `tools/gen_audio.py` synthesises 51 sounds (whooshes, flesh/stone/heavy impacts, cracking faience,
+  dodge, footsteps, chimes, creature voices, Ammit roar/snap, shockwaves, gate grind, traps, UI) plus four
+  Hijaz-scale music loops (title, courtyard, tomb, boss: Karplus-Strong strings, drones, frame drums, ney flute)
+  and two ambience beds. `AudioManager`: Master / Music / SFX buses (reverb on SFX per zone, limiter on Master),
+  pooled 3D voices, one event table for every combat event, music crossfades, loop handling, clean shutdown.
+- **UI**: HUD, boss bar, prompts with device-aware glyphs, area banners, notifications, death screen, level-up menu,
+  pause + settings (volumes, camera shake, fullscreen, orthographic camera), title screen, end-of-slice screen.
+- **Asset pipeline**: `ModelRig` plays any imported humanoid (BoneMap + SkeletonProfileHumanoid) through the same
+  AnimationTree; events are injected from AttackData into imported clips; shared clips are duplicated per action.
+  `tests/model_rig_test.tscn` verifies it with a code-built "imported" skeleton model — PASS.
+- Clean runs: `godot --headless --quit-after 600` (main + level) print no ERROR / WARNING; all 8 test scenes pass
+  with zero errors and zero warnings (headless runs play no audio).
+- Documentation: `README.md` (Russian), `CREDITS.md`.

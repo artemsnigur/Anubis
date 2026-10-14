@@ -53,8 +53,10 @@ func _ready() -> void:
 	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX
 	_noise.frequency = 0.5
+	orthographic = orthographic or Settings.camera_orthographic
 	_apply_projection()
 	CameraShake.register_camera(self)
+	Settings.changed.connect(func() -> void: set_orthographic(Settings.camera_orthographic))
 
 
 func _exit_tree() -> void:

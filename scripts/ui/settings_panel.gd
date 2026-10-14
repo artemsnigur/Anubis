@@ -27,6 +27,13 @@ func _ready() -> void:
 	fs.add_theme_font_override(&"font", UIStyle.heading_font())
 	fs.toggled.connect(func(v: bool) -> void: Settings.set_value(&"fullscreen", v))
 	box.add_child(fs)
+	var ortho := CheckButton.new()
+	ortho.text = "Orthographic camera"
+	ortho.button_pressed = Settings.camera_orthographic
+	ortho.add_theme_color_override(&"font_color", UIStyle.INK)
+	ortho.add_theme_font_override(&"font", UIStyle.heading_font())
+	ortho.toggled.connect(func(v: bool) -> void: Settings.set_value(&"camera_orthographic", v))
+	box.add_child(ortho)
 	var back := UIStyle.button("Back", func() -> void: closed.emit())
 	box.add_child(back)
 
