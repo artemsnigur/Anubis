@@ -1,7 +1,7 @@
 extends Node3D
 ## Title screen: the ushabti on its plinth in torchlight, menu on the left.
 
-const LEVEL_SCENE := "res://scenes/levels/test_arena.tscn"
+const LEVEL_SCENE := "res://scenes/levels/necropolis.tscn"
 
 var _menu: VBoxContainer
 var _settings: SettingsPanel

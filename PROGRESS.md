@@ -158,3 +158,8 @@ explores, dodges and dies a few times should land in the 10–15 minute target; 
 - Performance on a mid-range PC (measured: 77–83 FPS at 1080p on an Apple M5 laptop GPU, MSAA 4×, SSAO,
   volumetric fog).
 - Gamepad mapping and prompt glyphs on a physical controller.
+
+## Fix after review
+- Bug: **New Game loaded the test arena** — `title_menu.gd` still pointed to `test_arena.tscn` (written in milestone 4,
+  before the Necropolis existed). Now loads `necropolis.tscn`. Regression test `tests/menu_flow_test.tscn` drives the
+  real title screen: New Game → Necropolis at the courtyard start; Continue → Necropolis at the saved altar — PASS.
