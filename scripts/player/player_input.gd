@@ -1,14 +1,18 @@
 class_name PlayerInput
 extends Node
-## Reads the Input Map for the player, buffers action presses (~0.15 s) and resolves
-## aiming for mouse (cursor projected onto the floor plane) and gamepad (right stick).
+## Reads the Input Map for the player, buffers action presses (FeelPreset.buffer_time)
+## and resolves aiming for mouse (cursor projected onto the floor plane) and gamepad
+## (right stick). The Player calls poll() first thing in its own physics tick, so a press
+## reaches the state machine in the tick it arrives - no frame of delay. Buffered presses
+## age in the hero's local time (frozen during hitstop) when the preset says so.
 ## A test bot can drive the player through the `bot_*` fields instead of real input.
 
 const BUFFERED: Array[StringName] = [&"attack_light", &"attack_heavy", &"dodge", &"ranged", &"heal", &"interact", &"lock_on", &"target_next", &"target_prev"]
+## Actions bound to mouse buttons: ignored while the cursor is over a debug panel.
+const MOUSE_ACTIONS: Array[StringName] = [&"attack_light", &"attack_heavy", &"lock_on", &"target_next", &"target_prev"]
 const STICK_DEADZONE := 0.2
 const AIM_STICK_THRESHOLD := 0.35
 
-var buffer_time: float = 0.15
 var using_gamepad: bool = false
 var enabled: bool = true
 var camera: Camera3D
@@ -24,10 +28,6 @@ var _last_aim: Vector3 = Vector3.ZERO
 var _right_stick_was_flicked: bool = false
 
 
-func _ready() -> void:
-	buffer_time = GameState.balance.input_buffer_time
-
-
 func _input(event: InputEvent) -> void:
 	if event is InputEventJoypadButton:
 		using_gamepad = true
@@ -39,22 +39,36 @@ func _input(event: InputEvent) -> void:
 		using_gamepad = false
 
 
-func _physics_process(delta: float) -> void:
+func buffer_time() -> float:
+	return GameState.feel.buffer_time
+
+
+## Called by the Player first thing in its physics tick (before the state machine).
+## `local_dt` is 0 while the hero is frozen by hitstop. Returns true when dodge was
+## pressed in this tick (a dodge may cut the hero's own hitstop short).
+func poll(local_dt: float, real_dt: float) -> bool:
+	var age := local_dt if GameState.feel.buffer_in_local_time else real_dt
 	for a: StringName in _buffer.keys():
-		_buffer[a] = float(_buffer[a]) - delta
+		_buffer[a] = float(_buffer[a]) - age
 		if float(_buffer[a]) <= 0.0:
 			_buffer.erase(a)
 	if not enabled or bot_enabled:
-		return
+		return false
+	var dodge := false
+	var mouse_blocked: bool = not using_gamepad and DebugOverlay.ui_has_mouse()
 	for a in BUFFERED:
 		if Input.is_action_just_pressed(a):
-			_buffer[a] = buffer_time
+			if mouse_blocked and MOUSE_ACTIONS.has(a):
+				continue
+			_buffer[a] = buffer_time()
+			dodge = dodge or a == &"dodge"
 	_detect_stick_flick()
+	return dodge
 
 
 ## Simulates a press from a bot / test.
 func bot_press(action: StringName) -> void:
-	_buffer[action] = buffer_time
+	_buffer[action] = buffer_time()
 
 
 func bot_hold(action: StringName, held: bool) -> void:
@@ -85,14 +99,24 @@ func is_held(action: StringName) -> bool:
 	return Input.is_action_pressed(action)
 
 
-## Raw 2D move input (-1..1), y = down on screen.
+## 2D move input (length 0..1), y = down on screen. Keyboard diagonals are normalised;
+## the stick gets a radial deadzone (rescaled) and the preset's response curve.
 func move_vector() -> Vector2:
 	if bot_enabled:
 		return bot_move.limit_length(1.0)
 	if not enabled:
 		return Vector2.ZERO
-	var v := Input.get_vector(&"move_left", &"move_right", &"move_up", &"move_down", STICK_DEADZONE)
-	return v.limit_length(1.0)
+	var v := Input.get_vector(&"move_left", &"move_right", &"move_up", &"move_down", 0.0)
+	var l := v.length()
+	if l < 0.0001:
+		return Vector2.ZERO
+	if l > 0.999 and not using_gamepad:
+		return v / l
+	var f := GameState.feel
+	if l <= f.stick_deadzone:
+		return Vector2.ZERO
+	var m := clampf(inverse_lerp(f.stick_deadzone, 1.0, minf(l, 1.0)), 0.0, 1.0)
+	return v / l * pow(m, f.stick_response_exponent)
 
 
 ## Camera-relative world direction scaled by input magnitude (0..1).
@@ -156,8 +180,8 @@ func _detect_stick_flick() -> void:
 	var s := Input.get_vector(&"aim_left", &"aim_right", &"aim_up", &"aim_down", STICK_DEADZONE)
 	if s.length() > 0.8 and not _right_stick_was_flicked:
 		_right_stick_was_flicked = true
-		_buffer[&"stick_flick"] = buffer_time
-		_buffer[&"stick_flick_dir"] = buffer_time
+		_buffer[&"stick_flick"] = buffer_time()
+		_buffer[&"stick_flick_dir"] = buffer_time()
 		set_meta(&"flick", s)
 	elif s.length() < 0.3:
 		_right_stick_was_flicked = false

@@ -14,6 +14,9 @@ extends Node3D
 @export var target_height: float = 0.8
 
 @export_group("Follow")
+## Follow rate and look-ahead settle rate (1/s) come from the active FeelPreset
+## (camera_follow / camera_look_ahead_rate) unless use_feel_preset is off.
+@export var use_feel_preset: bool = true
 @export var follow_damping: float = 7.0
 @export var look_ahead_damping: float = 2.5
 @export var look_ahead_scale: float = 1.0
@@ -101,8 +104,16 @@ func _process(delta: float) -> void:
 		var desired_la := Vector3.ZERO
 		if target.has_method(&"camera_look_ahead"):
 			desired_la = (target.call(&"camera_look_ahead") as Vector3) * look_ahead_scale
-		_look_ahead = _look_ahead.lerp(desired_la, 1.0 - exp(-look_ahead_damping * delta))
-		_focus = _focus.lerp(tpos + _look_ahead, 1.0 - exp(-follow_damping * delta))
+		var follow := follow_damping
+		var la_rate := look_ahead_damping
+		if use_feel_preset:
+			follow = GameState.feel.camera_follow
+			la_rate = GameState.feel.camera_look_ahead_rate
+			# Recentring (lead shrinking) is slower and calmer than leading.
+			if desired_la.length() < _look_ahead.length() - 0.01:
+				la_rate = GameState.feel.camera_recenter_rate
+		_look_ahead = _look_ahead.lerp(desired_la, 1.0 - exp(-la_rate * delta))
+		_focus = _focus.lerp(tpos + _look_ahead, 1.0 - exp(-follow * delta))
 	_zoom_current = lerpf(_zoom_current, zoom, 1.0 - exp(-zoom_damping * delta))
 	trauma = maxf(trauma - trauma_decay * delta, 0.0)
 	_noise_t += delta * noise_speed

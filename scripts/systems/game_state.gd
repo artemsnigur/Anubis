@@ -5,15 +5,23 @@ extends Node
 signal ka_changed(amount: int)
 signal levels_changed
 signal flag_changed(flag: StringName, value: bool)
+## The active feel preset changed (F7) or one of its values was edited (F6).
+signal feel_changed(preset: FeelPreset)
 
 const BALANCE_PATH := "res://resources/balance/balance.tres"
 const PLAYER_STATS_PATH := "res://resources/balance/player_stats.tres"
 const LEVELING_PATH := "res://resources/balance/leveling.tres"
 const STATS: Array[StringName] = [&"vitality", &"strength", &"spirit"]
+## Feel presets in F7 order.
+const FEEL_PRESET_PATHS: Array[String] = ["res://resources/feel/old.tres", "res://resources/feel/snappy.tres", "res://resources/feel/weighty.tres"]
+const DEFAULT_FEEL := &"snappy"
 
 var balance: BalanceConfig
 var player_stats: PlayerStats
 var leveling: LevelingConfig
+var feel_presets: Array[FeelPreset] = []
+## Active feel preset (movement, windows, dodge, impact, camera, procedural layers).
+var feel: FeelPreset
 
 var ka: int = 0
 var levels: Dictionary = {}
@@ -35,12 +43,56 @@ func _ready() -> void:
 	balance = load(BALANCE_PATH) as BalanceConfig
 	player_stats = load(PLAYER_STATS_PATH) as PlayerStats
 	leveling = load(LEVELING_PATH) as LevelingConfig
+	for path in FEEL_PRESET_PATHS:
+		feel_presets.append(load(path) as FeelPreset)
+	feel = _find_feel(StringName(Settings.feel_preset))
+	if feel == null:
+		feel = _find_feel(DEFAULT_FEEL)
 	reset_progress()
 
 
 func _process(delta: float) -> void:
 	if not get_tree().paused:
 		play_time += delta
+
+
+# --- feel presets ---------------------------------------------------------------
+
+func _find_feel(id: StringName) -> FeelPreset:
+	for p in feel_presets:
+		if p.id == id:
+			return p
+	return null
+
+
+## Activates a feel preset by id. `persist` stores the choice in the user settings.
+func set_feel_preset(id: StringName, persist: bool = true) -> void:
+	var p := _find_feel(id)
+	if p == null:
+		push_warning("GameState: unknown feel preset '%s'" % id)
+		return
+	feel = p
+	if persist:
+		Settings.feel_preset = String(id)
+		Settings.save_settings()
+	feel_changed.emit(feel)
+
+
+## F7: next preset in FEEL_PRESET_PATHS order.
+func cycle_feel_preset() -> FeelPreset:
+	var i := feel_presets.find(feel)
+	set_feel_preset(feel_presets[(i + 1) % feel_presets.size()].id)
+	return feel
+
+
+## Re-reads the active preset from disk, discarding live edits.
+func reload_feel_preset() -> void:
+	var i := feel_presets.find(feel)
+	var p := ResourceLoader.load(feel.resource_path, "", ResourceLoader.CACHE_MODE_REPLACE) as FeelPreset
+	if p != null and i >= 0:
+		feel_presets[i] = p
+		feel = p
+	feel_changed.emit(feel)
 
 
 func reset_progress() -> void:

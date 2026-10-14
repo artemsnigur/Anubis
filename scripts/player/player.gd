@@ -16,6 +16,8 @@ const RA_PROJECTILE := preload("res://scenes/combat/projectile.tscn")
 
 var stats: PlayerStats
 var balance: BalanceConfig
+## Active feel preset (GameState.feel); re-applied when F7 / F6 change it.
+var feel: FeelPreset
 var stamina: float = 100.0
 var max_stamina: float = 100.0
 var energy: float = 0.0
@@ -31,12 +33,19 @@ var _stamina_delay: float = 0.0
 var _safe_timer: float = 0.0
 var _step_toggle: bool = false
 var _last_shake_frame: int = -1
+var _pivoting: bool = false
+var _look_ahead_hold: Vector3 = Vector3.ZERO
+var _look_ahead_idle: float = 0.0
+var _last_step_msec: Dictionary = {}
 
 
 func _combatant_ready() -> void:
 	add_to_group(&"player")
 	stats = GameState.player_stats
 	balance = GameState.balance
+	fsm.immediate_transitions = true
+	GameState.feel_changed.connect(_apply_feel)
+	_apply_feel(GameState.feel)
 	faction = CombatTypes.Faction.PLAYER
 	hurtbox.faction = faction
 	hitbox.faction = faction
@@ -47,6 +56,11 @@ func _combatant_ready() -> void:
 	lock_on.player = self
 	last_safe_position = global_position
 	_find_camera.call_deferred()
+
+
+func _apply_feel(f: FeelPreset) -> void:
+	feel = f
+	animator.set_xfades(f.combat_xfade, f.recover_xfade)
 
 
 func _find_camera() -> void:
@@ -83,6 +97,16 @@ func get_clip_table() -> Dictionary:
 	return t
 
 
+## First thing in the tick: read input, so the state machine sees a press in the tick
+## it arrives. A dodge press may cut the hero's own hitstop short when it can act on it.
+func _early_update(real_dt: float) -> void:
+	var frozen := hitstop_left > real_dt * 0.5
+	var dodge := input.poll(0.0 if frozen else real_dt, real_dt)
+	if dodge and frozen and feel.dodge_breaks_hitstop and fsm.current != null \
+			and fsm.current.has_method(&"accepts") and bool(fsm.current.call(&"accepts", &"dodge")):
+		hitstop_left = 0.0
+
+
 func _pre_update(dt: float, real_dt: float) -> void:
 	# Stamina regeneration.
 	if _stamina_delay > 0.0:
@@ -99,6 +123,11 @@ func _pre_update(dt: float, real_dt: float) -> void:
 	if _safe_timer <= 0.0 and is_on_floor() and hazard_count == 0 and not is_dead:
 		_safe_timer = 0.25
 		last_safe_position = global_position
+
+
+func _post_update(_dt: float, _real_dt: float) -> void:
+	# Again after the state machine: a dodge entered this tick is invulnerable this tick.
+	hurtbox.invulnerable = invulnerable_time > 0.0 or _state_iframes()
 
 
 func _state_iframes() -> bool:
@@ -145,18 +174,61 @@ func grant_iframes(duration: float) -> void:
 
 # --- movement helpers ---------------------------------------------------------------
 
-## Camera-relative locomotion with snappy acceleration and a capped turn rate.
+## Camera-relative locomotion (FeelPreset "Movement"): separate acceleration,
+## deceleration and reversal rates (exponential approach + linear floor, frame-rate
+## independent), exponential turning, instant facing when starting from a standstill,
+## and a fast pivot (with a skid) when the input reverses at speed.
 func locomote(dir: Vector3, max_speed: float, dt: float, allow_face: bool = true) -> void:
+	if dt <= 0.0:
+		return
+	var f := feel
 	var target := dir * max_speed * speed_multiplier
-	var accel := stats.acceleration if target.length() >= move_velocity.length() else stats.deceleration
-	move_velocity = move_velocity.move_toward(target, accel * dt)
+	var v := move_velocity
+	var speed := v.length()
+	var sharp := f.accel_sharpness
+	var linear := f.accel_linear
+	var reversing := speed > 0.5 and target.length() > 0.1 \
+		and v.dot(target) < cos(deg_to_rad(f.reverse_angle_deg)) * speed * target.length()
+	if reversing:
+		sharp = f.reverse_sharpness
+		linear = f.reverse_linear
+		if not _pivoting and speed > stats.run_speed * 0.55:
+			_pivoting = true
+			_on_pivot(v / speed, speed / stats.run_speed)
+	elif target.length() < speed - 0.001:
+		sharp = f.decel_sharpness
+		linear = f.decel_linear
+	if sharp > 0.0:
+		v = v.lerp(target, 1.0 - exp(-sharp * dt))
+	move_velocity = v.move_toward(target, linear * dt)
 	if allow_face:
 		var t := lock_on.target
 		if t != null and move_velocity.length() < stats.run_speed * 0.6:
-			face_toward(direction_to_node(t), stats.turn_rate_deg, dt)
+			_turn_to(direction_to_node(t), f.turn_sharpness, dt)
 		elif dir.length() > 0.1:
-			face_toward(dir, stats.turn_rate_deg, dt)
-	animator.set_locomotion_blend(move_velocity.length() / stats.run_speed)
+			if speed < f.snap_face_speed:
+				face_instant(dir)
+			else:
+				_turn_to(dir, f.pivot_turn_sharpness if _pivoting else f.turn_sharpness, dt)
+	if _pivoting and (dir.length() < 0.1 or absf(angle_difference(rotation.y, yaw_for(dir))) < deg_to_rad(12.0)):
+		_pivoting = false
+	animator.set_locomotion(move_velocity.length(), stats.run_speed, f.speed_matched_locomotion)
+
+
+func _turn_to(dir: Vector3, sharpness: float, dt: float) -> void:
+	if sharpness > 0.0:
+		face_smooth(dir, sharpness, feel.turn_rate_deg, dt)
+	else:
+		face_toward(dir, feel.turn_rate_deg, dt)
+
+
+## Sharp reversal at speed: plant and pivot (lean back, skid dust).
+func _on_pivot(old_dir: Vector3, strength: float) -> void:
+	if not feel.skid_fx:
+		return
+	motion.recoil(-old_dir, 0.45 * strength)
+	Vfx.dust(global_position + old_dir * 0.35, int(4 + 5 * strength), 0.7 + 0.4 * strength)
+	AudioManager.play_event(&"footstep_sand" if global_position.y > -1.0 else &"footstep_stone", global_position, 3.0)
 
 
 ## Disables collisions with enemy bodies (dodging through swarms).
@@ -355,14 +427,32 @@ func _on_hit_landed(target: Node3D, hit: HitInfo) -> void:
 		c.motion.stretch_impulse(-0.12)
 
 
-func _footstep() -> void:
+func _footstep(side: StringName) -> void:
 	if not is_on_floor():
 		return
+	# Walk and run blend in sync, so both clips report the same step: keep one.
+	var now := Time.get_ticks_msec()
+	if now - int(_last_step_msec.get(side, 0)) < 120:
+		return
+	_last_step_msec[side] = now
 	_step_toggle = not _step_toggle
 	var ev := &"footstep_stone" if global_position.y < -1.0 else &"footstep_sand"
 	AudioManager.play_event(ev, global_position)
-	if move_velocity.length() > 4.0 and _step_toggle:
+	var speed := move_velocity.length()
+	if feel.footstep_dust and side != &"" and speed > 2.5:
+		Vfx.dust(foot_position(side), 2, 0.45 + 0.25 * clampf(speed / stats.run_speed, 0.0, 1.0))
+	elif not feel.footstep_dust and speed > 4.0 and _step_toggle:
 		Vfx.dust(global_position, 3, 0.7)
+
+
+## World position of a foot on the ground (rig bone if there is one).
+func foot_position(side: StringName) -> Vector3:
+	var pr := rig as PlaceholderRig
+	if pr != null:
+		var n := pr.bones.get("FootR" if side == &"r" else "FootL") as Node3D
+		if n != null:
+			return Vector3(n.global_position.x, global_position.y, n.global_position.z)
+	return global_position
 
 
 ## Spawns the Eye of Ra projectile from the left hand.
@@ -398,8 +488,18 @@ func notify_death_finished() -> void:
 	death_finished.emit()
 
 
+## Desired camera look-ahead. Movement lead holds after the input is released (the camera
+## does not drift when the hero stops) and recentres after camera_recenter_delay.
 func camera_look_ahead() -> Vector3:
-	var la := input.move_world() * 1.6
+	var m := input.move_world()
+	if m.length() > 0.1:
+		_look_ahead_hold = m * feel.camera_look_ahead
+		_look_ahead_idle = 0.0
+	else:
+		_look_ahead_idle += get_process_delta_time()
+		if _look_ahead_idle > feel.camera_recenter_delay:
+			_look_ahead_hold = Vector3.ZERO
+	var la := _look_ahead_hold
 	if lock_on.target != null and is_instance_valid(lock_on.target):
 		var to := lock_on.target.global_position - global_position
 		to.y = 0.0

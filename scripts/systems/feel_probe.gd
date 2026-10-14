@@ -120,9 +120,9 @@ func _sample() -> Dictionary:
 	var flat := Vector3(v.x, 0.0, v.z)
 	return {
 		"speed": flat.length(), "vel": flat, "yaw": _player.rotation.y, "vis": _player.visual.transform,
-		"blend": float(_player.animator.tree.get(&"parameters/locomotion/blend_position")),
+		"blend": _player.animator.get_locomotion_blend(),
 		"anim": _player.animator.current, "state": _player.fsm.current_name(),
-		"active": _player.hitbox.active, "inv": _player.hurtbox.invulnerable, "frozen": _player.hitstop_left > 0.0,
+		"active": _player.hitbox.active, "inv": _player.hurtbox.invulnerable, "frozen": _player.frozen_tick,
 	}
 
 
@@ -277,7 +277,7 @@ func _track_hitstop(f: int) -> void:
 		if e != null and e.global_position.distance_squared_to(_player.global_position) < 100.0:
 			list.append(e)
 	for c in list:
-		var frozen := c.hitstop_left > 0.0
+		var frozen := c.frozen_tick
 		if frozen and not _frozen_since.has(c):
 			_frozen_since[c] = f
 		elif not frozen and _frozen_since.has(c):

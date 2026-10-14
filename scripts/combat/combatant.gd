@@ -31,6 +31,8 @@ var animator: CharacterAnimator
 var motion: ProceduralMotion
 var flash_fx: FlashEffect
 var hitstop_left: float = 0.0
+## True when the last physics tick was frozen by hitstop (for measurements).
+var frozen_tick: bool = false
 var knockback_velocity: Vector3 = Vector3.ZERO
 ## Desired horizontal velocity, written by states.
 var move_velocity: Vector3 = Vector3.ZERO
@@ -127,9 +129,14 @@ func get_clip_table() -> Dictionary:
 
 
 func _physics_process(delta: float) -> void:
-	var frozen := hitstop_left > 0.0
+	_early_update(delta)
+	# Hitstop is rounded to whole ticks (nearest): 55 ms freezes 3 ticks, not 4.
+	var frozen := hitstop_left > delta * 0.5
+	frozen_tick = frozen
 	if frozen:
 		hitstop_left -= delta
+	else:
+		hitstop_left = 0.0
 	var dt := 0.0 if frozen else delta
 	_pre_update(dt, delta)
 	poise.tick(dt)
@@ -140,6 +147,12 @@ func _physics_process(delta: float) -> void:
 	motion.update(dt, delta, frozen)
 	flash_fx.update(delta)
 	_post_update(dt, delta)
+
+
+## Subclass hook at the very start of the tick, before hitstop is evaluated
+## (the player reads its input here).
+func _early_update(_real_dt: float) -> void:
+	return
 
 
 ## Subclass hooks around the state machine update.
@@ -200,6 +213,16 @@ func face_toward(dir: Vector3, max_deg_per_s: float, dt: float) -> void:
 	var target := yaw_for(dir)
 	var diff := angle_difference(rotation.y, target)
 	var step := deg_to_rad(max_deg_per_s) * dt
+	rotation.y += clampf(diff, -step, step)
+
+
+## Frame-rate independent turn: exponential approach (sharpness, 1/s) with a minimum
+## angular speed so the last degrees never drag. sharpness 0 = constant-rate turn.
+func face_smooth(dir: Vector3, sharpness: float, min_deg_per_s: float, dt: float) -> void:
+	if Vector2(dir.x, dir.z).length_squared() < 0.0001 or dt <= 0.0:
+		return
+	var diff := angle_difference(rotation.y, yaw_for(dir))
+	var step := maxf(absf(diff) * (1.0 - exp(-sharpness * dt)), deg_to_rad(min_deg_per_s) * dt)
 	rotation.y += clampf(diff, -step, step)
 
 
@@ -294,12 +317,18 @@ func _on_hit_landed(_target: Node3D, _hit: HitInfo) -> void:
 
 
 func _on_anim_event(event: StringName, tag: StringName) -> void:
-	if event == &"footstep":
-		_footstep()
+	match event:
+		&"footstep":
+			_footstep(&"")
+		&"footstep_r":
+			_footstep(&"r")
+		&"footstep_l":
+			_footstep(&"l")
 	fsm.forward_anim_event(event, tag)
 
 
-func _footstep() -> void:
+## side: &"r" / &"l" when the clip says which foot landed, else &"".
+func _footstep(_side: StringName) -> void:
 	return
 
 

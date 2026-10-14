@@ -64,6 +64,11 @@ func _viz_mat(c: Color) -> StandardMaterial3D:
 	return m
 
 
+## True while the mouse is over a debug panel (its clicks must not reach the game).
+func ui_has_mouse() -> bool:
+	return false
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed(&"debug_overlay"):
 		overlay_visible = not overlay_visible

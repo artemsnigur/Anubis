@@ -8,5 +8,5 @@ func _combatant_ready() -> void:
 	telegraph_color = Color(1.0, 0.8, 0.35)
 
 
-func _footstep() -> void:
+func _footstep(_side: StringName) -> void:
 	return

@@ -75,7 +75,7 @@ func attack_weight_modifier(a: EnemyAttackData, dist: float, ang: float) -> floa
 	return 1.0
 
 
-func _footstep() -> void:
+func _footstep(_side: StringName) -> void:
 	if player_alive() and distance_to_player() < 14.0:
 		CameraShake.add_trauma(0.06)
 	Vfx.dust(global_position, 3, 1.2)

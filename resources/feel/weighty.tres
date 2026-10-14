@@ -1,0 +1,51 @@
+[gd_resource type="Resource" script_class="FeelPreset" format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/data/feel_preset.gd" id="1_feel"]
+
+[resource]
+script = ExtResource("1_feel")
+id = &"weighty"
+display_name = "Weighty"
+stick_response_exponent = 1.5
+accel_sharpness = 12.0
+accel_linear = 20.0
+decel_sharpness = 18.0
+decel_linear = 28.0
+reverse_sharpness = 22.0
+reverse_linear = 45.0
+turn_sharpness = 22.0
+turn_rate_deg = 720.0
+pivot_turn_sharpness = 36.0
+snap_face_speed = 1.0
+combat_xfade = 0.033
+recover_xfade = 0.1
+attack_entry_decay = 9.0
+lunge_start = 0.3
+lunge_ease = 2.4
+lunge_scale = 1.15
+windup_steer_time = 0.06
+walk_out_recovery = 0.6
+dodge_duration = 0.38
+dodge_distance = 4.6
+dodge_curve_power = 2.4
+iframe_end = 0.24
+dodge_attack_cancel = 0.24
+dodge_dodge_cancel = 0.3
+dodge_move_cancel = 0.3
+dodge_exit_carry = 0.5
+hitstop_light_mult = 1.05
+hitstop_heavy_mult = 1.25
+shake_mult = 1.2
+hit_push = 0.16
+camera_follow = 12.0
+camera_look_ahead = 1.6
+camera_recenter_delay = 0.9
+camera_recenter_rate = 1.3
+camera_look_ahead_rate = 4.0
+lean_turn = 0.15
+lean_max_deg = 18.0
+lean_accel = 0.013
+lean_stiffness = 120.0
+lean_damping = 11.0
+squash = 1.25
+secondary_motion = 1.3

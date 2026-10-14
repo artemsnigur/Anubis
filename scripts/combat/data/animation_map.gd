@@ -12,6 +12,10 @@ extends Resource
 @export var fallbacks: Dictionary = {}
 ## Locomotion blend space: logical name -> blend position (speed / run speed).
 @export var locomotion: Dictionary = {&"idle": 0.0, &"walk": 0.45, &"run": 1.0}
+## Optional: metres travelled per locomotion cycle (logical name -> m) for imported clips,
+## so the animator can match the cycle rate to the speed. Generated clips carry it as
+## "stride" metadata.
+@export var strides: Dictionary = {}
 ## Logical names of one-shot states built into the AnimationTree state machine.
 @export var states: Array[StringName] = []
 ## Logical names that loop.

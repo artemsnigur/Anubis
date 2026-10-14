@@ -376,7 +376,7 @@ func _on_death(_hit: HitInfo) -> void:
 	defeated.emit(self)
 
 
-func _footstep() -> void:
+func _footstep(_side: StringName) -> void:
 	if move_velocity.length() > 3.0 and randf() < 0.5:
 		Vfx.dust(global_position, 2, 0.6)
 

@@ -6,9 +6,10 @@ extends Node
 ## (pressed every other frame) and the frame it actually executes is recorded.
 ## godot --headless res://tests/feel_test.tscn                      measure + check the targets
 ## godot --headless res://tests/feel_test.tscn -- --measure-only     measure only (the "Before" table)
+## Add `--preset=old|snappy|weighty` to measure another feel preset (default: snappy).
 ## Add `--report=<path>` to also write the Markdown table to a file.
 
-const RUN_FRAMES := 70
+const RUN_FRAMES := 100
 
 var arena: Level
 var player: Player
@@ -27,6 +28,13 @@ func _ready() -> void:
 		print("feel_test: TIMEOUT")
 		get_tree().quit(2))
 	_strict = not OS.get_cmdline_user_args().has("--measure-only")
+	# Feel preset under test (default: the shipped default), never persisted.
+	var preset := GameState.DEFAULT_FEEL
+	for a: String in OS.get_cmdline_user_args():
+		if a.begins_with("--preset="):
+			preset = StringName(a.substr(9))
+	GameState.set_feel_preset(preset, false)
+	print("feel_test: preset ", GameState.feel.display_name)
 	arena = (load("res://scenes/levels/test_arena.tscn") as PackedScene).instantiate() as Level
 	arena.set("spawn_dummies", false)
 	add_child(arena)
@@ -165,8 +173,10 @@ func _run() -> void:
 		await get_tree().physics_frame
 		if cam_moved < 0 and cam.get_focus_position().distance_to(cam_start) > 0.002:
 			cam_moved = Engine.get_physics_frames() - f0
-		if i < 30:
-			var off := player.global_position + Vector3.UP * cam.target_height - cam.get_focus_position()
+		if i >= 40:
+			# Lag of the camera behind where it wants to be (hero + look-ahead).
+			var want := player.get_global_transform_interpolated().origin + Vector3.UP * cam.target_height + (cam.get("_look_ahead") as Vector3)
+			var off := want - cam.get_focus_position()
 			off.y = 0.0
 			max_off = maxf(max_off, off.length())
 		# Foot sliding: lowest world speed of each foot per step (a planted foot should stop).
@@ -177,7 +187,7 @@ func _run() -> void:
 					var d: Vector3 = now[k] - prev_feet[k]
 					d.y = 0.0
 					foot_min[k] = minf(foot_min[k], d.length() * 60.0)
-					if (i - 30) % 20 == 19:
+					if (i - 30) % 30 == 29:
 						slide.append(foot_min[k])
 						foot_min[k] = INF
 			prev_feet = now
@@ -197,8 +207,9 @@ func _run() -> void:
 			settle = i + 1
 		last_focus = fp
 	_row("Top speed → full stop", _r("stop"), "0.06–0.10 s (4–6 f)", 4, 6, true)
+	await _reset(Vector3(-6, 0.1, 9))
 	await _hold(&"move_right")
-	await _frames(RUN_FRAMES)
+	await _frames(60)
 	await _input_late(func() -> void:
 		Input.action_release(&"move_right")
 		Input.action_press(&"move_left"))
@@ -208,8 +219,8 @@ func _run() -> void:
 	_info("  ↳ velocity ≥ 50 % in the new direction", "%d f" % _r("turn_vel"))
 	await _release_all()
 	_info("Camera: input → camera starts moving", "%d f" % cam_moved)
-	_info("Camera: hero's largest distance from screen centre in the first 0.5 s of a run", "%.2f m" % max_off)
-	_info("Camera: still drifting after the hero stopped for", "%d f (%d ms)" % [settle, roundi(settle * 1000.0 / 60.0)])
+	_info("Camera: lag behind its target (hero + look-ahead) at full run", "%.2f m" % max_off)
+	_info("Camera: keeps moving after the hero stopped for", "%d f (%d ms)" % [settle, roundi(settle * 1000.0 / 60.0)])
 	var avg := 0.0
 	for v in slide:
 		avg += v

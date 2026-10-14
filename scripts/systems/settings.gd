@@ -1,5 +1,5 @@
 extends Node
-## User settings (volumes, camera shake, fullscreen). Stored in user://settings.cfg.
+## User settings (volumes, camera shake, fullscreen, feel preset). Stored in user://settings.cfg.
 
 signal changed
 
@@ -11,6 +11,8 @@ var sfx_volume: float = 0.85
 var shake_strength: float = 1.0
 var fullscreen: bool = false
 var camera_orthographic: bool = false
+## Id of the active FeelPreset (resources/feel/<id>.tres), cycled with F7.
+var feel_preset: String = "snappy"
 
 
 func _ready() -> void:
@@ -27,6 +29,7 @@ func load_settings() -> void:
 		shake_strength = float(cfg.get_value("camera", "shake", shake_strength))
 		fullscreen = bool(cfg.get_value("display", "fullscreen", fullscreen))
 		camera_orthographic = bool(cfg.get_value("camera", "orthographic", camera_orthographic))
+		feel_preset = String(cfg.get_value("gameplay", "feel_preset", feel_preset))
 	apply()
 
 
@@ -38,6 +41,7 @@ func save_settings() -> void:
 	cfg.set_value("camera", "shake", shake_strength)
 	cfg.set_value("display", "fullscreen", fullscreen)
 	cfg.set_value("camera", "orthographic", camera_orthographic)
+	cfg.set_value("gameplay", "feel_preset", feel_preset)
 	cfg.save(PATH)
 
 

@@ -9,6 +9,7 @@ const OUT := AnimBuilder.OUT
 const SNAP := AnimBuilder.SNAP
 const INOUT := AnimBuilder.INOUT
 const BACK := AnimBuilder.BACK
+const GAIT_LENGTH := 0.6
 
 
 func _build_body() -> void:
@@ -123,8 +124,10 @@ func _merge(a: Dictionary, b: Dictionary) -> Dictionary:
 func _build_clips(lib: AnimationLibrary) -> void:
 	var st := _stance()
 	_idle(lib, st)
-	_walk(lib, &"walk", 0.9, 0.55)
-	_walk(lib, &"run", 0.56, 1.0)
+	# Same cycle length for walk and run so the synced blend keeps the feet in phase;
+	# the animator rescales playback from the stride so the feet stay planted.
+	_gait(lib, &"walk", GAIT_LENGTH, 1.4, 0.57, 0.1, -0.02, 0.02, 0.0)
+	_gait(lib, &"run", GAIT_LENGTH, 3.0, 0.25, 0.3, -0.04, 0.04, 1.0)
 	_light_1(lib, st)
 	_light_2(lib, st)
 	_light_3(lib, st)
@@ -151,32 +154,78 @@ func _idle(lib: AnimationLibrary, st: Dictionary) -> void:
 	lib.add_animation(&"idle", b.build())
 
 
-func _walk(lib: AnimationLibrary, clip: StringName, length: float, k: float) -> void:
+## Foot-locked locomotion cycle (walk / run) for the hero.
+## The stance foot is solved with 2-bone IK so it stays planted while the hips travel
+## `stride` metres per cycle; the clip carries the stride as metadata, and the animator
+## scales playback so the cycle matches the real speed (no foot sliding).
+## stride: metres travelled per cycle (two steps); stance: fraction of the cycle a foot is
+## planted; lift: swing foot height; bob: hip bob; k: 0 = walk, 1 = run (style blend).
+func _gait(lib: AnimationLibrary, clip: StringName, length: float, stride: float, stance: float, lift: float, base_hip: float, bob: float, k: float) -> void:
+	const THIGH := 0.42
+	const SHIN := 0.41
+	const FOOT_H := 0.055
+	var hip_joint := 0.95 - 0.07
+	var sweep := stride * stance
+	var touchdown := sweep * 0.5
+	var reach := (THIGH + SHIN) * 0.985
 	var b := AnimBuilder.new(self, clip, length, true)
-	var h := length * 0.5
-	var q := length * 0.25
-	var lean := -5.0 - 9.0 * k
-	var stride := 22.0 + 16.0 * k
-	var bob := 0.02 + 0.04 * k
-	var base := {"Spine": Vector3(lean, 0, 0), "Neck": Vector3(-lean * 0.5, 0, 0), "Head": Vector3(-lean * 0.3, 0, 0),
-		"ForearmR": Vector3(55, 0, 0), "ForearmL": Vector3(35 + 20 * k, 0, 0), "^Body": Vector3.ONE}
-	# Contact (right foot forward).
-	b.key(0.0, _merge(base, {"@Hips": Vector3(0, -0.04 - bob, 0), "Hips": Vector3(0, 6 * k, 0), "Chest": Vector3(0, -8 * k, 0),
-		"LegR": Vector3(stride, 0, 0), "ShinR": Vector3(-8, 0, 0), "FootR": Vector3(-10, 0, 0),
-		"LegL": Vector3(-stride * 0.8, 0, 0), "ShinL": Vector3(-30 - 25 * k, 0, 0), "FootL": Vector3(30, 0, 0),
-		"ArmR": AnimBuilder.limb(25, 20 + 6 * k, -20), "ArmL": AnimBuilder.limb(-15, 15 + 25 * k)}), INOUT)
-	# Passing (left leg swings through, body high).
-	b.key(q, {"@Hips": Vector3(0, -0.02 + bob * 0.4, 0), "LegR": Vector3(0, 0, 0), "ShinR": Vector3(-10, 0, 0), "FootR": Vector3(8, 0, 0),
-		"LegL": Vector3(stride * 0.5, 0, 0), "ShinL": Vector3(-70 - 30 * k, 0, 0), "FootL": Vector3(10, 0, 0)}, INOUT)
-	# Contact (left foot forward).
-	b.key(h, {"@Hips": Vector3(0, -0.04 - bob, 0), "Hips": Vector3(0, -6 * k, 0), "Chest": Vector3(0, 8 * k, 0),
-		"LegL": Vector3(stride, 0, 0), "ShinL": Vector3(-8, 0, 0), "FootL": Vector3(-10, 0, 0),
-		"LegR": Vector3(-stride * 0.8, 0, 0), "ShinR": Vector3(-30 - 25 * k, 0, 0), "FootR": Vector3(30, 0, 0),
-		"ArmR": AnimBuilder.limb(40, 26 + 10 * k, -20), "ArmL": AnimBuilder.limb(-160, 12 + 20 * k)}, INOUT)
-	b.key(h + q, {"@Hips": Vector3(0, -0.02 + bob * 0.4, 0), "LegL": Vector3(0, 0, 0), "ShinL": Vector3(-10, 0, 0), "FootL": Vector3(8, 0, 0),
-		"LegR": Vector3(stride * 0.5, 0, 0), "ShinR": Vector3(-70 - 30 * k, 0, 0), "FootR": Vector3(10, 0, 0)}, INOUT)
-	b.event(0.02, &"footstep").event(h + 0.02, &"footstep")
-	lib.add_animation(clip, b.build())
+	var n := int(round(length * AnimBuilder.SAMPLE_RATE))
+	for i in n:
+		var ph := float(i) / float(n)
+		var feet: Array = []     # [forward, height, planted]
+		for side in 2:
+			var lp := fposmod(ph + 0.5 * side, 1.0)
+			if lp < stance:
+				var u := lp / stance
+				feet.append([touchdown - u * sweep, FOOT_H + 0.05 * pow(maxf(u - 0.7, 0.0) / 0.3, 2.0), true, u])
+			else:
+				var u := (lp - stance) / (1.0 - stance)
+				var e := u * u * (3.0 - 2.0 * u)
+				feet.append([touchdown - sweep + e * sweep, FOOT_H + 0.05 * (1.0 - u) + lift * sin(PI * pow(u, 0.8)), false, u])
+		var hip := base_hip - bob * cos(TAU * 2.0 * (ph - stance * 0.5))
+		for f: Array in feet:
+			if f[2]:
+				var x: float = f[0]
+				hip = minf(hip, float(f[1]) + sqrt(maxf(reach * reach - x * x, 0.0)) - hip_joint)
+		var pose := {"@Hips": Vector3(0, hip, 0)}
+		for side in 2:
+			var s := "R" if side == 0 else "L"
+			var f: Array = feet[side]
+			var x: float = f[0]
+			var down := hip_joint + hip - float(f[1])
+			var d := minf(sqrt(x * x + down * down), (THIGH + SHIN) * 0.999)
+			var knee := acos(clampf((THIGH * THIGH + SHIN * SHIN - d * d) / (2.0 * THIGH * SHIN), -1.0, 1.0))
+			var a := acos(clampf((THIGH * THIGH + d * d - SHIN * SHIN) / (2.0 * THIGH * d), -1.0, 1.0))
+			var thigh := atan2(x, down) + a
+			var shin := -(PI - knee)
+			# Foot: flat while planted (toe rolls at push-off), toes hang in the swing.
+			var foot := -(thigh + shin)
+			if f[2]:
+				foot -= deg_to_rad(28.0) * pow(maxf(float(f[3]) - 0.7, 0.0) / 0.3, 2.0)
+			else:
+				foot -= deg_to_rad(18.0 + 10.0 * k) * sin(PI * float(f[3]))
+			pose["Leg" + s] = Vector3(rad_to_deg(thigh), 0, 0)
+			pose["Shin" + s] = Vector3(rad_to_deg(shin), 0, 0)
+			pose["Foot" + s] = Vector3(rad_to_deg(foot), 0, 0)
+		# Upper body: forward lean, hip / chest counter-twist, arms swing against the legs.
+		var swing := sin(TAU * ph)   # +1 when the right leg is forward
+		var lean := -5.0 - 10.0 * k
+		# No hip yaw: it would swing the planted foot. The twist lives in spine / chest.
+		pose["Hips"] = Vector3.ZERO
+		pose["Spine"] = Vector3(lean, (3.0 + 5.0 * k) * swing, 0)
+		pose["Chest"] = Vector3(-2.0 * k, -(9.0 * k + 6.0) * swing, 0)
+		pose["Neck"] = Vector3(-lean * 0.45, 0, 0)
+		pose["Head"] = Vector3(-lean * 0.3, (4.0 * k + 2.0) * swing, 0)
+		pose["ArmR"] = AnimBuilder.limb(28.0 - 14.0 * swing, 24.0 + 8.0 * k - 10.0 * swing, -20.0)
+		pose["ForearmR"] = Vector3(55.0 + 15.0 * k, 0, 0)
+		pose["ArmL"] = AnimBuilder.limb(-15.0 - 8.0 * swing, 16.0 + 16.0 * k + (22.0 + 20.0 * k) * swing)
+		pose["ForearmL"] = Vector3(35.0 + 35.0 * k + 15.0 * swing, 0, 0)
+		pose["^Body"] = Vector3.ONE
+		b.key(length * ph, pose, AnimBuilder.LINEAR)
+	b.event(0.02, &"footstep_r").event(length * 0.5 + 0.02, &"footstep_l")
+	var anim := b.build()
+	anim.set_meta(&"stride", stride)
+	lib.add_animation(clip, anim)
 
 
 func _attack_times(clip: StringName, def_w: float, def_a: float, def_r: float) -> Array:

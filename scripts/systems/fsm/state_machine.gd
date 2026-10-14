@@ -5,6 +5,9 @@ extends Node
 signal state_changed(from: StringName, to: StringName)
 
 @export var initial_state: StringName = &""
+## When true, a state entered from inside physics_update() gets its first update in the
+## same tick (the player: input -> new state -> movement / i-frames without a frame of lag).
+var immediate_transitions: bool = false
 var current: State
 var states: Dictionary = {}
 var actor: Node
@@ -44,8 +47,15 @@ func transition_to(to: StringName, msg: Dictionary = {}) -> void:
 func physics_update(dt: float) -> void:
 	if current == null:
 		return
-	current.time_in_state += dt
-	current.physics_update(dt)
+	var s := current
+	s.time_in_state += dt
+	s.physics_update(dt)
+	var guard := 0
+	while immediate_transitions and current != s and guard < 4:
+		s = current
+		guard += 1
+		s.time_in_state += dt
+		s.physics_update(dt)
 
 
 func forward_anim_event(event: StringName, tag: StringName) -> void:
