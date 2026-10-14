@@ -292,13 +292,13 @@ func motes(pos: Vector3, amount: int = 16) -> void:
 
 
 ## Bright star flare used to telegraph enemy attacks and full heavy charge.
-func glint(pos: Vector3, color: Color = Color(1.0, 0.85, 0.5), size: float = 1.1, duration: float = 0.28) -> void:
+func glint(pos: Vector3, color: Color = Color(1.0, 0.85, 0.5), size: float = 0.9, duration: float = 0.28) -> void:
 	var mi := MeshInstance3D.new()
 	var q := QuadMesh.new()
 	q.size = Vector2(size, size)
 	mi.mesh = q
 	var mat := _star_mat.duplicate() as StandardMaterial3D
-	mat.albedo_color = Color(color.r * 2.0, color.g * 2.0, color.b * 2.0, 1.0)
+	mat.albedo_color = Color(color.r * 1.6, color.g * 1.6, color.b * 1.6, 1.0)
 	mi.material_override = mat
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	mi.position = pos

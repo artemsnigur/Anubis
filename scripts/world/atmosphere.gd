@@ -11,35 +11,35 @@ signal preset_changed(preset_name: StringName)
 
 const PRESETS: Dictionary = {
 	&"courtyard": {
-		"sun_energy": 1.7, "sun_color": Color(1.0, 0.86, 0.66),
-		"ambient_color": Color(0.66, 0.58, 0.5), "ambient_energy": 0.55,
-		"fog_density": 0.006, "fog_albedo": Color(1.0, 0.86, 0.68), "fog_emission": Color(0.0, 0.0, 0.0),
+		"sun_energy": 1.35, "sun_color": Color(1.0, 0.88, 0.7), "sun_shadows": true,
+		"ambient_color": Color(0.58, 0.56, 0.6), "ambient_energy": 0.5,
+		"fog_density": 0.005, "fog_albedo": Color(1.0, 0.88, 0.7), "fog_emission": Color(0.0, 0.0, 0.0),
 		"depth_fog": 0.002, "fog_color": Color(0.9, 0.78, 0.6),
-		"exposure": 1.0, "glow": 0.55, "saturation": 1.08, "contrast": 1.05,
+		"exposure": 0.92, "glow": 0.5, "saturation": 1.1, "contrast": 1.08,
 		"music": "music_courtyard", "ambience": "amb_wind", "reverb": 0.05,
 	},
 	&"tomb": {
-		"sun_energy": 0.0, "sun_color": Color(1.0, 0.86, 0.66),
-		"ambient_color": Color(0.16, 0.18, 0.28), "ambient_energy": 0.7,
-		"fog_density": 0.035, "fog_albedo": Color(0.55, 0.5, 0.45), "fog_emission": Color(0.01, 0.012, 0.02),
+		"sun_energy": 0.22, "sun_color": Color(0.45, 0.58, 1.0), "sun_shadows": false,
+		"ambient_color": Color(0.24, 0.27, 0.42), "ambient_energy": 0.9,
+		"fog_density": 0.018, "fog_albedo": Color(0.5, 0.52, 0.6), "fog_emission": Color(0.006, 0.008, 0.016),
 		"depth_fog": 0.0, "fog_color": Color(0.1, 0.1, 0.14),
-		"exposure": 1.25, "glow": 0.85, "saturation": 1.0, "contrast": 1.08,
+		"exposure": 1.4, "glow": 0.8, "saturation": 1.08, "contrast": 1.1,
 		"music": "music_tomb", "ambience": "amb_tomb", "reverb": 0.3,
 	},
 	&"hall": {
-		"sun_energy": 0.0, "sun_color": Color(1.0, 0.86, 0.66),
-		"ambient_color": Color(0.3, 0.24, 0.16), "ambient_energy": 0.65,
-		"fog_density": 0.022, "fog_albedo": Color(0.8, 0.65, 0.45), "fog_emission": Color(0.02, 0.014, 0.006),
+		"sun_energy": 0.25, "sun_color": Color(0.55, 0.6, 1.0), "sun_shadows": false,
+		"ambient_color": Color(0.3, 0.26, 0.24), "ambient_energy": 0.85,
+		"fog_density": 0.014, "fog_albedo": Color(0.8, 0.68, 0.5), "fog_emission": Color(0.014, 0.01, 0.005),
 		"depth_fog": 0.0, "fog_color": Color(0.2, 0.15, 0.1),
-		"exposure": 1.15, "glow": 0.9, "saturation": 1.05, "contrast": 1.08,
+		"exposure": 1.3, "glow": 0.9, "saturation": 1.08, "contrast": 1.1,
 		"music": "", "ambience": "amb_tomb", "reverb": 0.35,
 	},
 	&"hall_rage": {
-		"sun_energy": 0.0, "sun_color": Color(1.0, 0.4, 0.3),
-		"ambient_color": Color(0.45, 0.1, 0.06), "ambient_energy": 0.75,
-		"fog_density": 0.03, "fog_albedo": Color(0.9, 0.35, 0.25), "fog_emission": Color(0.06, 0.008, 0.004),
+		"sun_energy": 0.3, "sun_color": Color(1.0, 0.3, 0.25), "sun_shadows": false,
+		"ambient_color": Color(0.5, 0.12, 0.08), "ambient_energy": 0.9,
+		"fog_density": 0.022, "fog_albedo": Color(0.9, 0.35, 0.25), "fog_emission": Color(0.05, 0.006, 0.003),
 		"depth_fog": 0.0, "fog_color": Color(0.3, 0.05, 0.03),
-		"exposure": 1.2, "glow": 1.1, "saturation": 1.15, "contrast": 1.12,
+		"exposure": 1.3, "glow": 1.1, "saturation": 1.15, "contrast": 1.14,
 		"music": "", "ambience": "amb_tomb", "reverb": 0.35,
 	},
 }
@@ -138,7 +138,7 @@ func apply_preset(preset: StringName, instant: bool = false, duration: float = 1
 			_tween.tween_property(props[k][0] as Object, k, props[k][1], duration)
 		for k: String in env_props:
 			_tween.tween_property(env, k, env_props[k], duration)
-	sun.visible = float(p["sun_energy"]) > 0.01 or not instant
+	sun.shadow_enabled = bool(p["sun_shadows"])
 	var music: String = p["music"]
 	if music != "":
 		AudioManager.play_music(music, 3.0)

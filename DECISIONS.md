@@ -47,3 +47,11 @@ Routine decisions taken autonomously while building the slice. Newest at the bot
 - Occluding walls use `world.gdshader`: triplanar noise materials + Bayer-dithered discard of fragments that are
   between the camera and the player (view-space test against a global `player_position` uniform). No alpha
   blending, so no sorting problems; floors are excluded via a height test.
+
+## Level
+- The level is built in code (`necropolis.gd`) from a small modular kit rather than authored by hand in the editor:
+  it can be reasoned about in coordinates, verified by tests (paths, physical walk) and re-tuned quickly.
+- Tomb rooms are carved out of rock (`Carver`, greedy meshing). Walls are kept low (2.8 m) with dark tops so the
+  narrow-FOV 3/4 camera keeps seeing the floor; anything taller hides too much of the room.
+- Closed gates are baked into the navmesh (gate layer is parsed); opening one re-bakes on a worker thread.
+- Atmosphere zones are rectangles checked every 0.2 s (more robust than Area3D signals across teleports).

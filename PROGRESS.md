@@ -70,3 +70,27 @@
   loss, respawn at altar, save/load round trip) — all PASS.
 - Fixed: Area3D pickups spawned in the same frame as a teleport saw the player's stale physics position
   (heart now arms after 0.5 s and checks real distance).
+
+## Milestone 5 — the Necropolis + lighting & atmosphere ✅
+- One interconnected zone (`scenes/levels/necropolis.tscn`, built by `scripts/levels/necropolis.gd`):
+  1. **Sunlit Courtyard** (y 0): pylon gate, obelisks, broken statues and columns, wind-blown sand, first altar,
+     2 mummies + scarab swarm (tutorial).
+  2. **Descent into the Tomb** (y −4): antechamber (cobra + scarabs), **spike-trap corridor** (3 telegraphed
+     pressure plates: gold-eye plate, holed floor, click + dust + spike tips before the strike).
+  3. **Hall of Pillars**: jackal **ambush** bursting out of the sand, cobra, patrolling mummy.
+     West: **Chamber of the Canopic Shrine** (+1 Ankh reward, jackal + scarab ambush).
+  4. East: **Gallery of the Dead** (mummy, cobra, jackal, scarabs) → stairs up → vestibule → **lever** opens the
+     **shortcut gate** into the courtyard next to the first altar.
+  5. **Antechamber of Judgement** (second altar, light shaft) → **sand veil** → **Hall of Two Truths** (36×36 m).
+- Rooms are carved out of solid rock with greedy-meshed blocks (27 boxes); low 2.8 m tomb walls with dark rock tops
+  keep the 3/4 camera readable; gates are baked into the navmesh and re-baked (threaded) when they open.
+- Atmosphere zones (courtyard / tomb / hall / hall_rage presets: sun, ambient, volumetric fog, exposure, glow, grade,
+  music, ambience, reverb) and area banners on first entry.
+- Graphics: sand ripples + glitter, pigment-painted hieroglyphs with khekher friezes, basalt walls with glowing gold
+  inscriptions, glossy animated venom pools, dust motes, post-process (vignette, grade, grain, hit aberration,
+  low-HP pulse).
+- `tests/level_test.tscn` — 17 checks: navmesh paths to every key point, 2 altars, 3 traps, gate/lever/veil,
+  28 enemies, **physical walk start → arena (142 m) and gallery loop → lever without getting stuck**, lever opens the
+  gate, flag saved, navmesh re-bake shortens the route to 33 m — all PASS.
+- Performance (Apple M5, 1080p, MSAA 4x, SSAO, volumetric fog): 77–83 FPS, 107–350 draw calls.
+- Human check: walk the level; look at the camera framing in narrow corridors and at the stairs.

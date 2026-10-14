@@ -233,7 +233,7 @@ static func statue(parent: Node3D, pos: Vector3, yaw_deg: float, scale_k: float 
 
 ## Torch on a wall: bracket, emissive flame, flickering light and embers.
 ## `facing` = direction the torch points (away from the wall).
-static func torch(parent: Node3D, pos: Vector3, facing: Vector3, energy: float = 2.4, light_range: float = 7.5, shadows: bool = false) -> Node3D:
+static func torch(parent: Node3D, pos: Vector3, facing: Vector3, energy: float = 2.4, light_range: float = 9.0, shadows: bool = false) -> Node3D:
 	var root := Node3D.new()
 	root.position = pos
 	parent.add_child(root)
@@ -243,7 +243,7 @@ static func torch(parent: Node3D, pos: Vector3, facing: Vector3, energy: float =
 	_flame(root, f * 0.28 + Vector3(0, 0.3, 0), 1.0)
 	var light := TorchLight.new()
 	light.position = f * 0.6 + Vector3(0, 0.4, 0)
-	light.light_color = Color(1.0, 0.62, 0.3)
+	light.light_color = Color(1.0, 0.68, 0.4)
 	light.base_energy = energy
 	light.omni_range = light_range
 	light.omni_attenuation = 1.2
@@ -397,3 +397,158 @@ static func sand_drift(parent: Node3D, center: Vector3, radius: float, height: f
 	sm.radial_segments = 16
 	sm.rings = 6
 	mesh(parent, sm, Mats.get_mat(&"sand"), center, Vector3.ZERO, Vector3(1.0, 1.0, 0.7), false)
+
+
+## Stone sarcophagus with a gilded, painted lid.
+static func sarcophagus(parent: Node3D, pos: Vector3, yaw_deg: float) -> StaticBody3D:
+	var b := box(parent, pos + Vector3(0, 0.45, 0), Vector3(1.1, 0.9, 2.4), Mats.get_mat(&"basalt"), CombatTypes.LAYER_WORLD, yaw_deg)
+	mesh(b, _box_mesh(Vector3(1.0, 0.18, 2.3)), Mats.get_mat(&"gold_world"), Vector3(0, 0.54, 0))
+	mesh(b, _box_mesh(Vector3(0.9, 0.12, 2.1)), Mats.get_mat(&"lapis"), Vector3(0, 0.66, 0.05))
+	mesh(b, _box_mesh(Vector3(0.5, 0.16, 0.5)), Mats.get_mat(&"gold_world"), Vector3(0, 0.74, -0.8))
+	mesh(b, _box_mesh(Vector3(0.62, 0.1, 0.4)), Mats.get_mat(&"turquoise_stone"), Vector3(0, 0.7, -0.45))
+	return b
+
+
+## Cluster of canopic jars / amphorae (small, decorative, with a light collider).
+static func jars(parent: Node3D, pos: Vector3, count: int, seed_value: int) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value
+	var heads: Array[StringName] = [&"gold_world", &"turquoise_stone", &"basalt", &"lapis"]
+	for i in count:
+		var p := pos + Vector3(rng.randf_range(-0.8, 0.8), 0, rng.randf_range(-0.8, 0.8))
+		var tall := rng.randf_range(0.45, 0.75)
+		var mat := Mats.get_mat(&"terracotta") if rng.randf() < 0.6 else Mats.get_mat(&"sandstone")
+		var mi := mesh(parent, _cyl_mesh(0.13, 0.17, tall, 10), mat, p + Vector3(0, tall * 0.5, 0))
+		mi.visibility_range_end = 45.0
+		var head := mesh(parent, PlaceholderRig.sphere(0.12, 0.2, 8), Mats.get_mat(heads[rng.randi() % heads.size()]), p + Vector3(0, tall + 0.06, 0))
+		head.visibility_range_end = 45.0
+
+
+## Offering table with bread, fruit and a lotus.
+static func offering_table(parent: Node3D, pos: Vector3, yaw_deg: float) -> void:
+	var b := box(parent, pos + Vector3(0, 0.4, 0), Vector3(1.6, 0.8, 0.8), Mats.get_mat(&"sandstone"), CombatTypes.LAYER_WORLD, yaw_deg)
+	mesh(b, _box_mesh(Vector3(1.7, 0.08, 0.9)), Mats.get_mat(&"gold_world"), Vector3(0, 0.44, 0))
+	var colors: Array[StringName] = [&"terracotta", &"gold", &"red_cloth", &"turquoise_stone"]
+	for i in 5:
+		mesh(b, PlaceholderRig.sphere(0.1, 0.16, 8), Mats.get_mat(colors[i % colors.size()]), Vector3(-0.6 + i * 0.3, 0.55, (i % 2) * 0.15 - 0.05))
+
+
+## Broken column stump with its fallen drum.
+static func broken_column(parent: Node3D, pos: Vector3, height: float, fallen_yaw: float) -> void:
+	var body := StaticBody3D.new()
+	body.collision_layer = CombatTypes.LAYER_WORLD
+	body.position = pos
+	parent.add_child(body)
+	var cs := CollisionShape3D.new()
+	var shape := CylinderShape3D.new()
+	shape.radius = 0.6
+	shape.height = height
+	cs.shape = shape
+	cs.position = Vector3(0, height * 0.5, 0)
+	body.add_child(cs)
+	mesh(body, _cyl_mesh(0.7, 0.75, 0.3, 16), Mats.get_mat(&"sandstone"), Vector3(0, 0.15, 0))
+	mesh(body, _cyl_mesh(0.5, 0.56, height, 16), Mats.get_mat(&"sandstone_glyph"), Vector3(0, height * 0.5, 0))
+	mesh(body, _cyl_mesh(0.3, 0.52, 0.25, 7), Mats.get_mat(&"sandstone"), Vector3(0.05, height + 0.1, 0), Vector3(8, 20, 6))
+	var f := Vector3(cos(deg_to_rad(fallen_yaw)), 0, sin(deg_to_rad(fallen_yaw)))
+	box(parent, pos + f * 2.2 + Vector3(0, 0.5, 0), Vector3(1.0, 1.0, 1.8), Mats.get_mat(&"sandstone_glyph"), CombatTypes.LAYER_WORLD, fallen_yaw + 90.0)
+
+
+## Egyptian pylon tower (battered walls) flanking a gateway.
+static func pylon(parent: Node3D, center: Vector3, width: float, depth: float, height: float) -> void:
+	var steps := 4
+	for i in steps:
+		var k := float(i) / float(steps)
+		var w := lerpf(width, width * 0.82, k)
+		var d := lerpf(depth, depth * 0.85, k)
+		var h := height / float(steps)
+		box(parent, center + Vector3(0, h * (float(i) + 0.5), 0), Vector3(w, h + 0.01, d), Mats.get_mat(&"sandstone_glyph"))
+	box(parent, center + Vector3(0, height + 0.25, 0), Vector3(width * 0.86, 0.5, depth * 0.9), Mats.get_mat(&"sandstone"))
+	mesh(parent, _box_mesh(Vector3(width * 0.86 + 0.02, 0.12, depth * 0.9 + 0.02)), Mats.get_mat(&"lapis"), center + Vector3(0, height - 0.1, 0))
+
+
+## Wind-blown sand streaming low over the ground (courtyard).
+static func wind_sand(parent: Node3D, center: Vector3, extents: Vector3, wind: Vector3 = Vector3(-1.0, 0.0, -0.5)) -> GPUParticles3D:
+	var pm := ParticleProcessMaterial.new()
+	pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+	pm.emission_box_extents = extents
+	pm.direction = wind.normalized()
+	pm.spread = 8.0
+	pm.flatness = 0.8
+	pm.initial_velocity_min = 2.5
+	pm.initial_velocity_max = 5.0
+	pm.gravity = Vector3(0, -0.2, 0)
+	pm.turbulence_enabled = true
+	pm.turbulence_noise_strength = 1.2
+	pm.turbulence_noise_scale = 6.0
+	pm.scale_min = 0.6
+	pm.scale_max = 1.6
+	pm.particle_flag_align_y = true
+	var g := Gradient.new()
+	g.offsets = PackedFloat32Array([0.0, 0.2, 0.8, 1.0])
+	g.colors = PackedColorArray([Color(0.95, 0.82, 0.6, 0.0), Color(0.95, 0.82, 0.6, 0.35), Color(0.92, 0.78, 0.55, 0.3), Color(0.9, 0.75, 0.5, 0.0)])
+	var gt := GradientTexture1D.new()
+	gt.gradient = g
+	pm.color_ramp = gt
+	var q := QuadMesh.new()
+	q.size = Vector2(0.05, 0.9)
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.vertex_color_use_as_albedo = true
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	m.albedo_texture = Vfx.soft_texture()
+	q.material = m
+	var p := GPUParticles3D.new()
+	p.amount = 220
+	p.lifetime = 2.2
+	p.process_material = pm
+	p.draw_pass_1 = q
+	p.position = center
+	p.preprocess = 2.0
+	p.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	p.visibility_aabb = AABB(-extents - Vector3(12, 2, 12), extents * 2.0 + Vector3(24, 4, 24))
+	parent.add_child(p)
+	return p
+
+
+## Slowly drifting dust motes that catch the light (tomb rooms).
+static func dust_motes(parent: Node3D, center: Vector3, extents: Vector3, amount: int = 70) -> GPUParticles3D:
+	var pm := ParticleProcessMaterial.new()
+	pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+	pm.emission_box_extents = extents
+	pm.direction = Vector3.UP
+	pm.spread = 180.0
+	pm.initial_velocity_min = 0.02
+	pm.initial_velocity_max = 0.15
+	pm.gravity = Vector3(0, -0.01, 0)
+	pm.turbulence_enabled = true
+	pm.turbulence_noise_strength = 0.3
+	pm.scale_min = 0.5
+	pm.scale_max = 1.2
+	var g := Gradient.new()
+	g.offsets = PackedFloat32Array([0.0, 0.3, 0.7, 1.0])
+	g.colors = PackedColorArray([Color(1, 0.9, 0.7, 0.0), Color(1, 0.9, 0.7, 0.5), Color(1, 0.9, 0.7, 0.5), Color(1, 0.9, 0.7, 0.0)])
+	var gt := GradientTexture1D.new()
+	gt.gradient = g
+	pm.color_ramp = gt
+	var q := QuadMesh.new()
+	q.size = Vector2(0.05, 0.05)
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	m.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	m.vertex_color_use_as_albedo = true
+	m.albedo_texture = Vfx.soft_texture()
+	q.material = m
+	var p := GPUParticles3D.new()
+	p.amount = amount
+	p.lifetime = 6.0
+	p.preprocess = 6.0
+	p.process_material = pm
+	p.draw_pass_1 = q
+	p.position = center
+	p.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	p.visibility_aabb = AABB(-extents - Vector3.ONE, extents * 2.0 + Vector3.ONE * 2.0)
+	parent.add_child(p)
+	return p

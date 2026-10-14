@@ -30,7 +30,7 @@ static func _create(mat_name: StringName) -> Material:
 		&"sandstone_glyph":
 			return _world(Color(0.80, 0.64, 0.42), Color(0.60, 0.45, 0.28), {"strata_strength": 0.12, "glyph_strength": 0.75})
 		&"sandstone_floor":
-			return _world(Color(0.80, 0.65, 0.44), Color(0.68, 0.53, 0.34), {"strata_strength": 0.0, "occluder": false, "sand_cover": 0.55, "tex_scale": 0.12, "tile_size": 1.6, "noise_contrast": 0.6})
+			return _world(Color(0.80, 0.65, 0.44), Color(0.68, 0.53, 0.34), {"strata_strength": 0.0, "occluder": false, "sand_cover": 0.55, "tex_scale": 0.12, "tile_size": 1.6, "noise_contrast": 0.6, "glitter": 0.4})
 		&"sand":
 			return _world(Color(0.88, 0.73, 0.49), Color(0.79, 0.63, 0.40), {"strata_strength": 0.0, "occluder": false, "roughness_value": 1.0, "tex_scale": 0.08, "detail_scale": 0.7, "noise_contrast": 0.55})
 		&"tomb_floor":
@@ -39,6 +39,18 @@ static func _create(mat_name: StringName) -> Material:
 			return _world(Color(0.55, 0.44, 0.31), Color(0.38, 0.29, 0.19), {"strata_strength": 0.2, "glyph_strength": 0.8, "glyph_color": Color(0.12, 0.08, 0.05)})
 		&"tomb_wall_plain":
 			return _world(Color(0.55, 0.44, 0.31), Color(0.38, 0.29, 0.19), {"strata_strength": 0.2})
+		&"tomb_block":
+			return _world(Color(0.62, 0.5, 0.35), Color(0.44, 0.34, 0.23), {"strata_strength": 0.18, "glyph_strength": 0.9, "glyph_painted": true,
+				"glyph_band_min": -3.45, "glyph_band_max": -1.95, "frieze": 1.0, "top_mix": 1.0, "top_color": Color(0.16, 0.13, 0.11), "glyph_scale": 0.55})
+		&"courtyard_wall":
+			return _world(Color(0.82, 0.66, 0.44), Color(0.64, 0.49, 0.31), {"strata_strength": 0.16, "glyph_strength": 0.65, "glyph_painted": true,
+				"glyph_band_min": 0.9, "glyph_band_max": 3.4, "frieze": 0.7, "glyph_color": Color(0.35, 0.2, 0.1)})
+		&"desert":
+			return _world(Color(0.9, 0.74, 0.5), Color(0.8, 0.63, 0.4), {"strata_strength": 0.0, "occluder": false, "roughness_value": 1.0, "tex_scale": 0.06,
+				"detail_scale": 0.7, "noise_contrast": 0.6, "ripple_strength": 1.0, "ripple_scale": 1.3, "glitter": 1.0})
+		&"hall_wall":
+			return _world(Color(0.1, 0.1, 0.12), Color(0.05, 0.05, 0.06), {"strata_strength": 0.0, "roughness_value": 0.4, "glyph_strength": 0.95,
+				"glyph_color": Color(1.0, 0.72, 0.28), "glyph_emission": 1.4, "glyph_band_min": -3.5, "glyph_band_max": -1.5, "glyph_scale": 0.5, "frieze": 0.0, "top_mix": 1.0, "top_color": Color(0.06, 0.05, 0.05)})
 		&"lapis":
 			return _world(Color(0.10, 0.18, 0.55), Color(0.05, 0.09, 0.33), {"strata_strength": 0.0, "fleck_amount": 1.0, "roughness_value": 0.35, "specular_value": 0.6, "detail_scale": 2.5})
 		&"basalt":
@@ -52,7 +64,7 @@ static func _create(mat_name: StringName) -> Material:
 		&"gold_world":
 			return _world(Color(1.0, 0.72, 0.26), Color(0.85, 0.55, 0.16), {"strata_strength": 0.0, "metallic_value": 0.9, "roughness_value": 0.36, "specular_value": 0.7, "noise_contrast": 0.5})
 		&"hall_floor":
-			return _world(Color(0.12, 0.13, 0.15), Color(0.06, 0.06, 0.08), {"strata_strength": 0.0, "occluder": false, "roughness_value": 0.3, "specular_value": 0.6, "sand_cover": 0.3, "tile_size": 2.0, "grout_color": Color(0.7, 0.55, 0.25), "tile_variation": 0.3})
+			return _world(Color(0.12, 0.13, 0.15), Color(0.06, 0.06, 0.08), {"strata_strength": 0.0, "occluder": false, "roughness_value": 0.3, "specular_value": 0.6, "sand_cover": 0.12, "tile_size": 2.0, "grout_color": Color(0.7, 0.55, 0.25), "tile_variation": 0.3, "noise_contrast": 0.5})
 		# --- characters / props ---
 		&"faience":
 			var f := ShaderMaterial.new()

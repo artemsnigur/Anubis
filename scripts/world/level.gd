@@ -22,6 +22,7 @@ var fader: Fader
 var death_screen: DeathScreen
 var levelup: LevelUpMenu
 var pause_menu: PauseMenu
+var screen_fx: ScreenFX
 var altars: Dictionary = {}
 var _heart: KaHeart
 var _busy: bool = false
@@ -42,6 +43,7 @@ func _ready() -> void:
 	enemies_root.name = "Enemies"
 	add_child(enemies_root)
 	_build_world()
+	_apply_persistent_state()
 	NavBaker.bake(nav_region)
 	for a in get_tree().get_nodes_in_group(&"altars"):
 		var altar := a as Altar
@@ -53,11 +55,11 @@ func _ready() -> void:
 	add_child(player)
 	_build_ui()
 	hud.bind_player(player)
+	screen_fx.bind_player(player)
 	var sp := _spawn_transform()
 	player.teleport_to(sp[0], sp[1])
 	camera.target = player
 	camera.snap_to_target()
-	_apply_persistent_state()
 	for s in get_tree().get_nodes_in_group(&"spawners"):
 		var sp2 := s as EnemySpawner
 		if not sp2.deferred:
@@ -91,6 +93,8 @@ func _level_started() -> void:
 
 
 func _build_ui() -> void:
+	screen_fx = ScreenFX.new()
+	add_child(screen_fx)
 	hud = HUD.new()
 	add_child(hud)
 	death_screen = DeathScreen.new()
@@ -110,7 +114,7 @@ func _spawn_transform() -> Array:
 	GameState.pending_spawn_altar = &""
 	if id != &"" and altars.has(id):
 		var a := altars[id] as Altar
-		return [a.spawn_point(), a.spawn_yaw() + PI]
+		return [a.spawn_point(), a.spawn_yaw()]
 	return [start_position, start_yaw]
 
 
@@ -123,6 +127,11 @@ func _spawn_heart() -> void:
 		add_child(_heart)
 		_heart.global_position = GameState.heart_position
 		_heart.reset_physics_interpolation()
+
+
+## Gates / veils changed: rebuild the navmesh in the background.
+func rebake_navigation() -> void:
+	NavBaker.rebake_async(nav_region)
 
 
 ## Respawns every enemy, clears hazards and resets level mechanisms.

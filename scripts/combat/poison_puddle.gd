@@ -9,7 +9,7 @@ extends Node3D
 
 var _t: float = 0.0
 var _tick_t: float = 0.0
-var _mat: StandardMaterial3D
+var _mat: ShaderMaterial
 var _mesh: MeshInstance3D
 var _query := PhysicsShapeQueryParameters3D.new()
 var _attack := AttackData.new()
@@ -18,19 +18,12 @@ var _attack := AttackData.new()
 func _ready() -> void:
 	add_to_group(&"transient")
 	_mesh = MeshInstance3D.new()
-	var c := CylinderMesh.new()
-	c.top_radius = radius
-	c.bottom_radius = radius
-	c.height = 0.02
-	c.radial_segments = 24
-	_mesh.mesh = c
-	_mat = StandardMaterial3D.new()
-	_mat.albedo_color = Color(0.3, 0.75, 0.15, 0.75)
-	_mat.emission_enabled = true
-	_mat.emission = Color(0.35, 0.9, 0.15)
-	_mat.emission_energy_multiplier = 1.4
-	_mat.roughness = 0.1
-	_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	var pm := PlaneMesh.new()
+	pm.size = Vector2(radius * 2.2, radius * 2.2)
+	_mesh.mesh = pm
+	_mat = ShaderMaterial.new()
+	_mat.shader = preload("res://assets/shaders/venom_pool.gdshader")
+	_mat.set_shader_parameter(&"seed", randf() * 50.0)
 	_mesh.material_override = _mat
 	_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_mesh.scale = Vector3(0.2, 1.0, 0.2)
@@ -59,8 +52,7 @@ func _physics_process(delta: float) -> void:
 		Vfx.motes(global_position + Vector3(randf_range(-0.6, 0.6), 0.1, randf_range(-0.6, 0.6)), 2)
 	if _t > duration - 0.6:
 		var k := clampf((duration - _t) / 0.6, 0.0, 1.0)
-		_mat.albedo_color.a = 0.75 * k
-		_mat.emission_energy_multiplier = 1.4 * k
+		_mat.set_shader_parameter(&"fade", k)
 	if _t >= duration:
 		queue_free()
 

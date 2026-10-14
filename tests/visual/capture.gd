@@ -39,6 +39,7 @@ func _process(_delta: float) -> void:
 	var shots := int(_args.get("shots", "1"))
 	var interval := int(_args.get("interval", "30"))
 	if _frame >= first + _shot * interval:
+		print("capture: fps=%d draw_calls=%d objects=%d" % [Engine.get_frames_per_second(), RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME), RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_OBJECTS_IN_FRAME)])
 		var img := get_viewport().get_texture().get_image()
 		var out: String = _args.get("out", "/tmp/shot")
 		img.save_png("%s_%d.png" % [out, _shot])
