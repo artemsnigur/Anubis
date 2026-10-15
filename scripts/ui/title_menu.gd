@@ -2,6 +2,8 @@ extends Node3D
 ## Title screen: the ushabti on its plinth in torchlight, menu on the left.
 
 const LEVEL_SCENE := "res://scenes/levels/necropolis.tscn"
+## Debug / feel arena (training dummies, F8 spawns sparring enemies). Never saves.
+const ARENA_SCENE := "res://scenes/levels/test_arena.tscn"
 
 var _menu: VBoxContainer
 var _settings: SettingsPanel
@@ -16,6 +18,7 @@ var _fader: Fader
 func _ready() -> void:
 	get_tree().paused = false
 	HitStop.reset()
+	GameState.sandbox = false
 	_build_scene()
 	_build_ui()
 	AudioManager.play_music("music_title", 2.0)
@@ -99,6 +102,7 @@ func _build_ui() -> void:
 	_new = UIStyle.button("New Game", _on_new_game)
 	_menu.add_child(_new)
 	_menu.add_child(UIStyle.button("Settings", _on_settings))
+	_menu.add_child(UIStyle.button("Training Arena", _on_arena))
 	_menu.add_child(UIStyle.button("Quit", func() -> void: AudioManager.quit_game()))
 	_settings = SettingsPanel.new()
 	_settings.visible = false
@@ -142,11 +146,19 @@ func _on_new_game() -> void:
 	_start()
 
 
-func _start() -> void:
+func _on_arena() -> void:
+	if _starting:
+		return
+	GameState.reset_progress()
+	GameState.sandbox = true
+	_start(ARENA_SCENE)
+
+
+func _start(scene: String = LEVEL_SCENE) -> void:
 	_starting = true
 	AudioManager.stop_music(1.0)
 	await _fader.fade_out(0.8)
-	get_tree().change_scene_to_file(LEVEL_SCENE)
+	get_tree().change_scene_to_file(scene)
 
 
 func _on_settings() -> void:

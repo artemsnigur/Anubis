@@ -2,6 +2,8 @@ extends CanvasLayer
 ## Debug tools.
 ##  F3 - overlay with FPS and the current state of every state machine nearby.
 ##        Includes the FeelProbe section (input latencies, lockouts in 60 Hz frames).
+##  F6 - feel tuning panel (live editor of the active FeelPreset).
+##  F7 - next feel preset (Old -> Snappy -> Weighty), shown as a toast.
 ##  F4 - draws hitboxes (red when active) and hurtboxes (green, blue = invulnerable).
 
 var overlay_visible: bool = false
@@ -9,6 +11,9 @@ var hitboxes_visible: bool = false
 var _label: Label
 var _feel: RichTextLabel
 var _timeline: WindowTimeline
+var _tuning: TuningPanel
+var _toast: Label
+var _toast_tween: Tween
 var _panel: PanelContainer
 var _viz: Dictionary = {}   # Area3D -> MeshInstance3D
 var _mat_hit_on: StandardMaterial3D
@@ -51,6 +56,19 @@ func _ready() -> void:
 	_timeline = WindowTimeline.new()
 	box.add_child(_timeline)
 	_panel.visible = false
+	_toast = Label.new()
+	_toast.add_theme_font_size_override(&"font_size", 26)
+	_toast.add_theme_color_override(&"font_color", Color(1.0, 0.88, 0.55))
+	_toast.add_theme_color_override(&"font_outline_color", Color(0, 0, 0, 0.9))
+	_toast.add_theme_constant_override(&"outline_size", 8)
+	_toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_toast.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_toast.offset_top = 90
+	_toast.offset_left = -400
+	_toast.offset_right = 400
+	_toast.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_toast.modulate.a = 0.0
+	add_child(_toast)
 	_mat_hit_on = _viz_mat(Color(1.0, 0.1, 0.1, 0.45))
 	_mat_hit_off = _viz_mat(Color(1.0, 0.6, 0.1, 0.08))
 	_mat_hurt = _viz_mat(Color(0.1, 1.0, 0.3, 0.25))
@@ -69,13 +87,46 @@ func _viz_mat(c: Color) -> StandardMaterial3D:
 
 ## True while the mouse is over a debug panel (its clicks must not reach the game).
 func ui_has_mouse() -> bool:
-	return false
+	if _tuning == null or not _tuning.visible:
+		return false
+	return _tuning.get_global_rect().has_point(_tuning.get_global_mouse_position())
+
+
+## Short centred message that fades out (preset changes, saves).
+func toast(text: String) -> void:
+	_toast.text = text
+	if _toast_tween != null:
+		_toast_tween.kill()
+	_toast.modulate.a = 1.0
+	_toast_tween = create_tween()
+	_toast_tween.tween_interval(1.2)
+	_toast_tween.tween_property(_toast, "modulate:a", 0.0, 0.6)
+
+
+func toggle_tuning() -> void:
+	if _tuning == null:
+		_tuning = TuningPanel.new()
+		_tuning.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+		_tuning.position = Vector2(get_viewport().get_visible_rect().size.x - 450, 12)
+		add_child(_tuning)
+		return
+	_tuning.visible = not _tuning.visible
+
+
+func cycle_preset() -> void:
+	var p := GameState.cycle_feel_preset()
+	toast("Feel preset: %s" % p.display_name)
+	print("[feel] preset -> ", p.display_name)
 
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed(&"debug_overlay"):
 		overlay_visible = not overlay_visible
 		_panel.visible = overlay_visible
+	elif event.is_action_pressed(&"debug_tuning"):
+		toggle_tuning()
+	elif event.is_action_pressed(&"feel_preset_next"):
+		cycle_preset()
 	elif event.is_action_pressed(&"debug_hitboxes"):
 		hitboxes_visible = not hitboxes_visible
 		if not hitboxes_visible:
@@ -115,7 +166,7 @@ func _build_text() -> String:
 	entries.sort_custom(func(a: Array, b: Array) -> bool: return float(a[0]) < float(b[0]))
 	for i in mini(entries.size(), 14):
 		lines.append(entries[i][1])
-	lines.append("[F3] overlay  [F4] hitboxes")
+	lines.append("[F3] overlay  [F4] hitboxes  [F6] feel tuning  [F7] feel preset: %s" % GameState.feel.display_name)
 	return "\n".join(lines)
 
 

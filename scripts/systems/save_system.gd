@@ -13,6 +13,8 @@ func has_save() -> bool:
 
 
 func save_game() -> bool:
+	if GameState.sandbox:
+		return false
 	var data := GameState.to_dict()
 	data["version"] = VERSION
 	data["timestamp"] = Time.get_datetime_string_from_system()

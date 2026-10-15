@@ -36,6 +36,8 @@ var deaths: int = 0
 var play_time: float = 0.0
 ## Set when a level should place the player at a specific altar on load (continue / respawn).
 var pending_spawn_altar: StringName = &""
+## Training arena opened from the title screen: nothing is written to the save file.
+var sandbox: bool = false
 
 
 func _ready() -> void:

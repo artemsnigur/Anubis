@@ -2,8 +2,14 @@ extends Level
 ## Test arena for movement / camera / combat feel and the souls-like loop:
 ## open floor, pillars to test the dithered occlusion, stairs to a platform,
 ## training dummies, an Altar of Osiris and optional enemy spawners.
+## F8 spawns a sparring enemy in front of the hero (scarab, jackal, mummy, cobra in turn)
+## to check hit reactions.
 
 const DUMMY_SCENE := preload("res://scenes/enemies/training_dummy.tscn")
+const SPARRING: Array[String] = ["res://scenes/enemies/scarab.tscn", "res://scenes/enemies/jackal.tscn",
+	"res://scenes/enemies/mummy.tscn", "res://scenes/enemies/cobra.tscn"]
+
+var _sparring_index: int = 0
 
 @export var spawn_dummies: bool = true
 
@@ -44,3 +50,24 @@ func _build_world() -> void:
 			s.enemy_scene = DUMMY_SCENE
 			add_child(s)
 			s.position = p
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed(&"debug_spawn"):
+		spawn_sparring()
+
+
+## Spawns the next sparring enemy 5 m in front of the hero, already aware of it.
+func spawn_sparring() -> EnemyBase:
+	var scene := load(SPARRING[_sparring_index % SPARRING.size()]) as PackedScene
+	_sparring_index += 1
+	var e := scene.instantiate() as EnemyBase
+	enemies_root.add_child(e)
+	var p := player.global_position + player.forward() * 5.0
+	p.y = 0.0
+	e.global_position = p
+	e.set_home(p, 0.0)
+	e.reset_physics_interpolation()
+	e.become_aware()
+	DebugOverlay.toast("Sparring: %s" % e.name)
+	return e

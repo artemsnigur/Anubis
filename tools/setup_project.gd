@@ -28,6 +28,9 @@ func _init() -> void:
 		"pause": [_key(KEY_ESCAPE), _joy(JOY_BUTTON_START)],
 		"debug_overlay": [_key(KEY_F3)],
 		"debug_hitboxes": [_key(KEY_F4)],
+		"debug_tuning": [_key(KEY_F6)],
+		"feel_preset_next": [_key(KEY_F7)],
+		"debug_spawn": [_key(KEY_F8)],
 	}
 	for action_name: String in actions:
 		ProjectSettings.set_setting("input/" + action_name, {"deadzone": DEADZONE, "events": actions[action_name]})

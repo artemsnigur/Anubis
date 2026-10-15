@@ -54,6 +54,8 @@ func _ready() -> void:
 	_post.process_physics_priority = 1000
 	add_child(_post)
 	log_enabled = OS.get_cmdline_user_args().has("--feel-log")
+	if GameState.has_signal(&"feel_changed"):
+		GameState.connect(&"feel_changed", func(_p: Resource) -> void: _xfade_cache.clear())
 
 
 func _find_player() -> Player:
@@ -130,10 +132,23 @@ func _sample() -> Dictionary:
 	var flat := Vector3(v.x, 0.0, v.z)
 	return {
 		"speed": flat.length(), "vel": flat, "yaw": _player.rotation.y, "vis": _player.visual.transform,
-		"blend": _player.animator.get_locomotion_blend(),
+		"blend": _blend(),
 		"anim": _player.animator.current, "state": _player.fsm.current_name(), "bones": bone_delta_deg,
-		"active": _player.hitbox.active, "inv": _player.hurtbox.invulnerable, "frozen": _player.frozen_tick,
+		"active": _player.hitbox.active, "inv": _player.hurtbox.invulnerable, "frozen": _frozen(_player),
 	}
+
+
+# The probe also runs on the pre-feel-pass code (to measure "Before" with the same
+# instrument), so newer APIs are looked up dynamically.
+func _blend() -> float:
+	if _player.animator.has_method(&"get_locomotion_blend"):
+		return float(_player.animator.call(&"get_locomotion_blend"))
+	return float(_player.animator.tree.get(&"parameters/locomotion/blend_position"))
+
+
+func _frozen(c: Combatant) -> bool:
+	var v: Variant = c.get(&"frozen_tick")
+	return bool(v) if v != null else c.hitstop_left > 0.0
 
 
 func _post_sample() -> void:
@@ -306,7 +321,7 @@ func _track_hitstop(f: int) -> void:
 		if e != null and e.global_position.distance_squared_to(_player.global_position) < 100.0:
 			list.append(e)
 	for c in list:
-		var frozen := c.frozen_tick
+		var frozen := _frozen(c)
 		if frozen and not _frozen_since.has(c):
 			_frozen_since[c] = f
 		elif not frozen and _frozen_since.has(c):

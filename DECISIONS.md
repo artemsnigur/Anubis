@@ -108,3 +108,27 @@ Routine decisions taken autonomously while building the slice. Newest at the bot
   AttackData (the placeholder clips are generated from them) and are shared by all presets.
 - The prompt mentions a pixel-art isometric style; this project is a low-poly 3D 3/4 view. "Pixel-stable"
   is read as: camera follows the interpolated transform with no sub-tick lag or snapping.
+- **AnimationTree priming (hero only):** `AnimationNodeStateMachinePlayback.travel()` takes effect two
+  advances later and `start()` one later, so a new clip sat on its first frame for 1–2 ticks. The hero's
+  animator calls `advance(0)` right after a transition so the clip starts in the requested tick and clip
+  time equals state time. Enemies keep the old behaviour (their telegraph timings were tuned with it).
+- **Light windup 0.10 → 0.11 s:** with the frame of input delay gone the hit would land on frame 5; 0.11 puts
+  the first active hitbox on frame 6 (target 6–8) and the dodge-cancel on frame 11 (target ≤ 12).
+- **Window comparisons use a 0.5 ms tolerance** (`PlayerState.reached`): the state clock is a float sum of
+  ticks, and a window at exactly 0.20 s must open on tick 12, not 13.
+- **Combo queue:** a light-attack press from mid-active on is stored without expiry and fires at the chain
+  point; earlier presses live in the (hitstop-proof) buffer, which reaches mid-active, so a single press
+  anywhere in the swing chains.
+- **Dodge cancels hitstop** only when the current state would accept the dodge (hit-confirm cancel), so it
+  never shortens the impact of a swing that cannot be cancelled anyway.
+- **Rolling through enemies:** both collision directions are released during a roll (the enemies' mask
+  bit for the player too); before, enemies depenetrated out of the rolling capsule and were dragged up to
+  3 m. Only masks that had the bit are restored (Ammit toggles hers during leaps).
+- **Alive layers on bones are additive and self-cleaning:** offsets written after the AnimationTree are
+  removed again when the animation did not re-pose the bone (hitstop advances by 0), so nothing drifts.
+  Secondary springs freeze with hitstop (freeze-frame look).
+- **Training Arena from the title is a sandbox** (`GameState.sandbox`): resting there never overwrites the
+  real save. Tests keep using the arena with saving enabled. `tools/run_tests.sh` backs up and restores the
+  player's save and settings because several tests delete / write them.
+- **Default preset: Snappy.** Weighty also meets every target (heavier momentum, 2-frame crossfades, longer
+  heavy hitstop); Old is only for comparison. The choice of default is left to a human playtest.

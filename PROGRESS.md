@@ -163,3 +163,56 @@ explores, dodges and dies a few times should land in the 10–15 minute target; 
 - Bug: **New Game loaded the test arena** — `title_menu.gd` still pointed to `test_arena.tscn` (written in milestone 4,
   before the Necropolis existed). Now loads `necropolis.tscn`. Regression test `tests/menu_flow_test.tscn` drives the
   real title screen: New Game → Necropolis at the courtyard start; Continue → Necropolis at the saved altar — PASS.
+
+## Feel pass — responsive movement and lively combat (branch `feel-pass`)
+Measured first, then fixed; numbers in `FEEL_REPORT.md` (Before / After tables, causes, changes).
+- **Step 1 — measure:** `FeelProbe` autoload (F3 FEEL section, `[feel]` log) and `tests/feel_test.tscn`
+  (simulated device input, empirical lockouts / cancel windows).
+- **Step 3 — movement:** input polled at the start of the hero's tick, same-tick state transitions,
+  acceleration / deceleration / reversal rates, exponential turning + pivot, stick deadzone and response
+  curve, foot-locked walk / run (leg IK, speed-matched playback), camera lead that holds on stop.
+- **Step 4 — combat:** AnimationTree transitions primed (anticipation on the input frame), cancel-window
+  API + F3 timeline, combo queue from mid-active, hit-confirm dodge cancel, windup steering + magnetism,
+  momentum and ease-out lunges, instant dodge with i-frames from the first tick, buffer survives hitstop,
+  dodge breaks the hero's own hitstop, per-preset hitstop, every hit pushes / shakes the target, rolling
+  through enemies no longer drags them.
+- **Step 5 — alive:** spring leans (overshoot), anticipation / dodge / landing squash & stretch, skid on
+  pivots and hard stops, run-start dust, footstep dust at the planted foot, breathing (heavier after
+  exertion), head / torso look-at, spring-driven kilt panel, wig lappets, linen sash and weapon sway, blade
+  smear on the fastest frames.
+- **Step 6 — presets:** `FeelPreset` resources Old / Snappy (default) / Weighty in `resources/feel/`;
+  **F7** cycles them (stored in the settings), **F6** opens a live tuning panel (edit, reload, save .tres,
+  toggle the `[feel]` log). Title screen → **Training Arena** opens the test arena as a sandbox (never
+  saves); **F8** there spawns sparring enemies (scarab, jackal, mummy, cobra in turn).
+- Tests: `feel_test` (all targets + exact window frames, buffered presses, hitstop, alive layers),
+  `preset_test` (F6 / F7 with real key events), `menu_flow_test` (arena sandbox, F8) — plus the whole
+  previous suite, all green; `tools/run_tests.sh` keeps the player's save and settings safe.
+
+### Try this in the arena (title screen → Training Arena; F3 shows the numbers live)
+1. Stand still, tap a direction: does the ushabti turn and start moving on the very first frame?
+2. Run and reverse direction sharply (D → A): does it pivot almost instantly, lean back with a puff of
+   dust, and run the other way without a slide?
+3. Run and let go: does it stop within a step, with a small counter-lean and skid dust? Does the camera
+   stop with it (no drift) and only recentre gently a moment later?
+4. Watch the feet at full run (zoom in with a screen recorder if needed): do the planted feet stay put?
+5. Mash light attack: three hits with a clear rhythm (hit 2 and 3 come at the chain point, not at the end
+   of each animation)? Now mash, then press dodge mid-chain — does the roll come out immediately, even
+   during the hit freeze?
+6. Press light attack once, then once more early in the first swing: does hit 2 still come out?
+7. Run at a dummy and attack: does the swing carry your momentum (longer lunge) and ease into the hit?
+8. Attack with the stick / cursor slightly off the dummy: does the first frames' steering + magnetism
+   snap you onto it?
+9. Dodge from a standstill and from a run: instant start, fast burst then glide, squash → stretch → small
+   landing squash? Dodge, then attack at the end of the roll.
+10. Hit the dummy: hitstop short on light hits, longer on the 3rd hit and the heavy; the dummy flinches and
+    is visibly pushed. Press F8 for a scarab / jackal (flinch on every light hit) and a mummy (armoured
+    swings: shake + flash instead of flinch).
+11. Idle near an enemy: does the head / torso track it? Does the hero breathe harder after a long combo?
+    Do the kilt panel, sash tails and wig lappets swing and settle when you run, pivot and stop?
+12. Press **F7** to compare **Old ↔ Snappy ↔ Weighty** back to back on the same moves; press **F6** to tune
+    any value live and "Save .tres" when it feels right.
+13. Gamepad: light stick tilt should walk smoothly (response curve), full tilt runs; diagonals on the
+    keyboard should not be faster.
+
+Things only a human can judge: whether Snappy or Weighty should be the default, the size of the spring
+leans / squash on screen, the smear look, the camera lead distance, and the feel on a physical gamepad.
