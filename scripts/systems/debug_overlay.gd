@@ -8,6 +8,7 @@ var overlay_visible: bool = false
 var hitboxes_visible: bool = false
 var _label: Label
 var _feel: RichTextLabel
+var _timeline: WindowTimeline
 var _panel: PanelContainer
 var _viz: Dictionary = {}   # Area3D -> MeshInstance3D
 var _mat_hit_on: StandardMaterial3D
@@ -47,6 +48,8 @@ func _ready() -> void:
 	_feel.add_theme_font_size_override(&"normal_font_size", 14)
 	_feel.add_theme_font_size_override(&"bold_font_size", 14)
 	box.add_child(_feel)
+	_timeline = WindowTimeline.new()
+	box.add_child(_timeline)
 	_panel.visible = false
 	_mat_hit_on = _viz_mat(Color(1.0, 0.1, 0.1, 0.45))
 	_mat_hit_off = _viz_mat(Color(1.0, 0.6, 0.1, 0.08))
@@ -83,6 +86,7 @@ func _process(_delta: float) -> void:
 	if overlay_visible:
 		_label.text = _build_text()
 		_feel.text = FeelProbe.overlay_text()
+		_timeline.queue_redraw()
 	if hitboxes_visible:
 		_update_viz()
 
@@ -191,3 +195,48 @@ func _clear_viz() -> void:
 		if is_instance_valid(mi):
 			(mi as Node).queue_free()
 	_viz.clear()
+
+
+## Cancel-window timeline of the hero's current action (F3): phase bars (windup gold,
+## active red, recovery grey), markers where dodge (blue), attack (gold), movement
+## (green) and the combo queue (violet) open, and the current time (white).
+class WindowTimeline:
+	extends Control
+
+	const COLORS := {"dodge": Color(0.35, 0.65, 1.0), "attack": Color(1.0, 0.8, 0.3), "move": Color(0.45, 1.0, 0.5), "queue": Color(0.8, 0.5, 1.0)}
+
+	func _init() -> void:
+		custom_minimum_size = Vector2(760, 46)
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	func _draw() -> void:
+		var player := get_tree().get_first_node_in_group(&"player") as Player
+		if player == null or player.fsm.current == null:
+			return
+		var w: Dictionary = {}
+		if player.fsm.current.has_method(&"windows"):
+			w = player.fsm.current.call(&"windows")
+		var font := get_theme_default_font()
+		if w.is_empty():
+			draw_string(font, Vector2(0, 14), "windows: %s (free)" % player.fsm.current_name(), HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(0.7, 0.8, 0.75))
+			return
+		var total := maxf(float(w["total"]), 0.001)
+		var x0 := 0.0
+		var width := size.x - 10.0
+		var y := 18.0
+		var t := float(w["t"])
+		draw_string(font, Vector2(0, 13), "windows: %s   t %d f / %d f" % [w["name"], roundi(t * 60.0), roundi(total * 60.0)], HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(0.85, 0.95, 0.85))
+		for ph: Array in w["phases"]:
+			var pw := float(ph[0]) / total * width
+			draw_rect(Rect2(x0, y, pw, 10), ph[1] as Color)
+			x0 += pw
+		var marks: Dictionary = w["marks"]
+		var label_x := 0.0
+		for k: String in marks:
+			var mx := clampf(float(marks[k]) / total, 0.0, 1.0) * width
+			var col: Color = COLORS.get(k, Color.WHITE)
+			draw_line(Vector2(mx, y - 3), Vector2(mx, y + 14), col, 2.0)
+			draw_string(font, Vector2(label_x, y + 26), "%s %df" % [k, roundi(float(marks[k]) * 60.0)], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, col)
+			label_x += 96.0
+		var cx := clampf(t / total, 0.0, 1.0) * width
+		draw_line(Vector2(cx, y - 5), Vector2(cx, y + 15), Color.WHITE, 2.0)

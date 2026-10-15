@@ -274,10 +274,15 @@ func _on_hit_received(hit: HitInfo) -> void:
 	apply_knockback(hit.direction, hit.knockback)
 	flash_fx.flash(Color(1.0, 0.95, 0.85), 0.16 if hit.is_heavy else 0.12)
 	motion.recoil(hit.direction, 0.6 if hit.is_heavy else 0.35)
+	# Visual push, independent of knockback resistance: every hit reads on the body.
+	var push := GameState.feel.hit_push * (1.6 if hit.is_heavy else 1.0)
+	if push > 0.0:
+		motion.push(hit.direction, push * (1.0 - knockback_resist * 0.5))
+	var heavy_stop := hit.is_heavy or hit.hitstop >= 0.075
 	if hit.is_projectile or hit.attacker == null:
-		HitStop.freeze([self], hit.hitstop)
+		HitStop.freeze([self], hit.hitstop, heavy_stop)
 	else:
-		HitStop.freeze([self, hit.attacker], hit.hitstop)
+		HitStop.freeze([self, hit.attacker], hit.hitstop, heavy_stop)
 	if health.dead:
 		hit.killed = true
 		is_dead = true

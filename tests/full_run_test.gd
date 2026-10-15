@@ -15,6 +15,7 @@ var _game_time: float = 0.0
 
 
 func _ready() -> void:
+	GameState.set_feel_preset(GameState.DEFAULT_FEEL, false)
 	get_tree().create_timer(900.0, true, false, true).timeout.connect(func() -> void:
 		print("full_run_test: TIMEOUT")
 		get_tree().quit(2))

@@ -63,7 +63,7 @@ func _balance() -> void:
 
 
 func _player() -> void:
-	var l1 := _atk("light_1", "light_1", 0.10, 0.08, 0.20, 14.0, 12.0, 2.5)
+	var l1 := _atk("light_1", "light_1", 0.11, 0.08, 0.20, 14.0, 12.0, 2.5)
 	l1.hitstop = 0.055
 	l1.shake = 0.16
 	l1.stamina_cost = 12.0
@@ -74,7 +74,7 @@ func _player() -> void:
 	l1.chain_delay = 0.04
 	_save(l1, "attacks/player_light_1.tres")
 
-	var l2 := _atk("light_2", "light_2", 0.10, 0.08, 0.20, 14.0, 12.0, 2.5)
+	var l2 := _atk("light_2", "light_2", 0.11, 0.08, 0.20, 14.0, 12.0, 2.5)
 	l2.hitstop = 0.06
 	l2.shake = 0.18
 	l2.stamina_cost = 12.0

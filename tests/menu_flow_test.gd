@@ -12,6 +12,7 @@ var is_runner: bool = false
 
 
 func _ready() -> void:
+	GameState.set_feel_preset(GameState.DEFAULT_FEEL, false)
 	if not is_runner:
 		var runner: Node = (get_script() as GDScript).new()
 		runner.set(&"is_runner", true)

@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1_v7ju1")
 id = &"light_1"
+windup = 0.11
 damage = 14.0
 poise_damage = 12.0
 knockback = 2.5

@@ -343,14 +343,16 @@ func _react_to_hit(hit: HitInfo) -> void:
 		return
 	if poise.apply(hit.poise_damage):
 		return
-	if fsm.current != null and not fsm.current.can_be_interrupted():
-		return
-	if fsm.is_in(&"Attack") and data.hyper_armor:
+	var armoured := (fsm.current != null and not fsm.current.can_be_interrupted()) \
+		or (fsm.is_in(&"Attack") and data.hyper_armor) or data.flinch_duration <= 0.0
+	if armoured:
+		# No flinch (hyper armour, boss): still shake the body so the hit registers.
+		if GameState.feel.hit_push > 0.0:
+			motion.push(hit.direction, 0.0, 0.07 if hit.is_heavy else 0.045)
 		return
 	if fsm.is_in(&"Stagger"):
 		return
-	if data.flinch_duration > 0.0:
-		fsm.transition_to(&"Flinch")
+	fsm.transition_to(&"Flinch")
 
 
 func _on_poise_broken() -> void:

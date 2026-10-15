@@ -34,6 +34,7 @@ var _safe_timer: float = 0.0
 var _step_toggle: bool = false
 var _last_shake_frame: int = -1
 var _pivoting: bool = false
+var _released_enemies: Array[CollisionObject3D] = []
 var _look_ahead_hold: Vector3 = Vector3.ZERO
 var _look_ahead_idle: float = 0.0
 var _last_step_msec: Dictionary = {}
@@ -44,6 +45,7 @@ func _combatant_ready() -> void:
 	stats = GameState.player_stats
 	balance = GameState.balance
 	fsm.immediate_transitions = true
+	animator.prime_transitions = true
 	GameState.feel_changed.connect(_apply_feel)
 	_apply_feel(GameState.feel)
 	faction = CombatTypes.Faction.PLAYER
@@ -61,6 +63,7 @@ func _combatant_ready() -> void:
 func _apply_feel(f: FeelPreset) -> void:
 	feel = f
 	animator.set_xfades(f.combat_xfade, f.recover_xfade)
+	motion.configure(f)
 
 
 func _find_camera() -> void:
@@ -90,7 +93,7 @@ func get_clip_table() -> Dictionary:
 	t[&"heavy_release"] = {"windup": h.windup, "active": h.active, "recovery": h.recovery}
 	var r := s.ranged_attack
 	t[&"cast"] = {"windup": r.windup, "active": r.active, "recovery": r.recovery}
-	t[&"dodge"] = {"length": s.dodge_duration}
+	t[&"dodge"] = {"length": GameState.feel.dodge_duration}
 	t[&"heal"] = {"length": s.heal_duration, "apply": s.heal_apply_time}
 	t[&"hit"] = {"length": s.hurt_duration}
 	t[&"hit_heavy"] = {"length": s.heavy_hurt_duration}
@@ -231,9 +234,23 @@ func _on_pivot(old_dir: Vector3, strength: float) -> void:
 	AudioManager.play_event(&"footstep_sand" if global_position.y > -1.0 else &"footstep_stone", global_position, 3.0)
 
 
-## Disables collisions with enemy bodies (dodging through swarms).
+## Disables collisions with enemy bodies (dodging through swarms) - both ways: the
+## enemies also stop colliding with the hero, otherwise their move_and_slide pushes them
+## out of the rolling capsule and the roll drags them along. Only masks that had the
+## player bit are restored.
 func set_enemy_collision(enabled: bool) -> void:
 	set_collision_mask_value(3, enabled)
+	if not enabled:
+		for n in get_tree().get_nodes_in_group(&"enemies"):
+			var e := n as CollisionObject3D
+			if e != null and e.get_collision_mask_value(2) and not _released_enemies.has(e):
+				e.set_collision_mask_value(2, false)
+				_released_enemies.append(e)
+	else:
+		for e in _released_enemies:
+			if is_instance_valid(e):
+				e.set_collision_mask_value(2, true)
+		_released_enemies.clear()
 
 
 # --- aiming ---------------------------------------------------------------------
@@ -417,7 +434,10 @@ func _on_hit_landed(target: Node3D, hit: HitInfo) -> void:
 		return
 	if hit.attack != null and not hit.is_projectile:
 		add_energy(hit.attack.energy_gain)
-	var amount := hit.shake * (1.4 if hit.is_heavy else 1.0)
+	# Hit confirm: the attack can now be dodge-cancelled (FeelPreset.dodge_cancel_on_hit).
+	if fsm.current != null and fsm.current.has_method(&"on_hit_confirmed"):
+		fsm.current.call(&"on_hit_confirmed")
+	var amount := hit.shake * (1.4 if hit.is_heavy else 1.0) * feel.shake_mult
 	# One shake per physics frame, even when a swing hits several enemies.
 	if Engine.get_physics_frames() != _last_shake_frame:
 		_last_shake_frame = Engine.get_physics_frames()

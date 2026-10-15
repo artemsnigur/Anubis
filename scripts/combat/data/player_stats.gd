@@ -1,6 +1,7 @@
 class_name PlayerStats
 extends Resource
-## Base player balance (before levels).
+## Base player balance (before levels). Movement feel, dodge timing and cancel windows
+## live in FeelPreset (resources/feel/).
 
 @export_group("Vitals")
 @export var max_hp: float = 100.0
@@ -13,22 +14,10 @@ extends Resource
 
 @export_group("Movement")
 @export var run_speed: float = 6.0
-@export var acceleration: float = 70.0
-@export var deceleration: float = 80.0
-@export var turn_rate_deg: float = 900.0
-@export var attack_move_speed: float = 0.0
 @export var heal_move_speed: float = 1.6
-@export var charge_move_speed: float = 1.4
 
 @export_group("Dodge")
-@export var dodge_duration: float = 0.35
-@export var dodge_distance: float = 4.5
-@export var iframe_start: float = 0.05
-@export var iframe_end: float = 0.25
 @export var dodge_stamina: float = 22.0
-## Time into the dodge after which an attack (or another dodge) can be started.
-@export var dodge_cancel_time: float = 0.25
-@export var dodge_curve_power: float = 2.0
 
 @export_group("Attacks")
 @export var light_attacks: Array[AttackData] = []

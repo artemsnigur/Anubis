@@ -11,6 +11,7 @@ var _director: AIDirector
 
 
 func _ready() -> void:
+	GameState.set_feel_preset(GameState.DEFAULT_FEEL, false)
 	# Watchdog: never hang a CI run.
 	get_tree().create_timer(300.0, true, false, true).timeout.connect(func() -> void:
 		print("ai_test: TIMEOUT")

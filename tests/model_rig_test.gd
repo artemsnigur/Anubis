@@ -16,6 +16,7 @@ var _events: Array = []
 
 
 func _ready() -> void:
+	GameState.set_feel_preset(GameState.DEFAULT_FEEL, false)
 	get_tree().create_timer(60.0, true, false, true).timeout.connect(func() -> void:
 		print("model_rig_test: TIMEOUT")
 		get_tree().quit(2))

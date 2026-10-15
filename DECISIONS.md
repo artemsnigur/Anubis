@@ -75,3 +75,36 @@ Routine decisions taken autonomously while building the slice. Newest at the bot
 - Fire is a Y-billboard fbm shader (`flame.gdshader`) with per-instance seeds; water is a raised basin
   (`water.gdshader`) because the courtyard floor is a single slab.
 - Creature `StandardMaterial3D`s have a soft rim term for silhouette readability from above.
+
+## Feel pass (branch `feel-pass`)
+- **Measure first, from outside.** `FeelProbe` samples the raw input before any gameplay node runs (physics
+  priority −1000) and the result after everything (+1000), so it measures what a player feels without
+  hooks inside the code it measures; the same probe drives the F3 FEEL section and `tests/feel_test`.
+  The harness injects input with `Input.action_press` at the end of a tick, which the engine exposes to
+  `is_action_just_pressed` in the next tick — exactly like a key press arriving between ticks.
+- **Input is polled by the Player at the start of its own tick** (`Combatant._early_update` →
+  `PlayerInput.poll`) instead of in the child node's `_physics_process` (which ran after the Player).
+- **Same-tick state transitions for the hero only** (`StateMachine.immediate_transitions`): a state entered
+  from inside the update gets its first update in the same tick, so its timer and the animation it started
+  stay in lock-step and windows can be expressed in state time. Enemies keep the old behaviour (their AI was
+  tuned and tested with it).
+- **60 Hz physics + physics interpolation (kept).** Interpolation adds at most one tick of display latency
+  but removes jitter on 120/144 Hz screens; doubling the tick rate would double AI / shape-query cost and
+  every timing table is in 60 Hz frames.
+- **Movement model:** exponential approach toward the target velocity plus a linear floor, with separate
+  acceleration, deceleration and reversal rates; facing uses an exponential approach with a minimum angular
+  speed, snaps instantly when starting from a standstill and pivots faster on a reversal. Run speed stays
+  6 m/s in every preset so level timings and enemy balance do not change.
+- **Foot-locked locomotion:** walk and run are generated with 2-bone leg IK so the stance foot is planted
+  while the hips travel `stride` metres per cycle; both clips have the same length and the blend space is
+  synced, and the animator scales playback by speed / stride. No hip yaw in the cycle (it slid the planted
+  foot); the twist is in spine and chest.
+- **Camera lead hold:** the movement look-ahead holds when the hero stops and only recentres after
+  `camera_recenter_delay`, at a slower rate — the camera never drifts on its own right after a stop.
+- **Presets:** all feel values are in `FeelPreset` resources (`resources/feel/`). **Old** reproduces the
+  pre-pass *values* (rates, windows, i-frames, camera, no procedural extras) but runs on the new code, so the
+  structural fixes (input in the same tick, buffer that survives hitstop, same-tick transitions) apply to it
+  too; the "Before" table in FEEL_REPORT.md was measured on the untouched commit. Attack timings stay in
+  AttackData (the placeholder clips are generated from them) and are shared by all presets.
+- The prompt mentions a pixel-art isometric style; this project is a low-poly 3D 3/4 view. "Pixel-stable"
+  is read as: camera follows the interpolated transform with no sub-tick lag or snapping.

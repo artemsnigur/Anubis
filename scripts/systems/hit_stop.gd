@@ -12,8 +12,12 @@ func _ready() -> void:
 
 
 ## Freezes every node in `targets` that implements apply_hitstop(duration).
-func freeze(targets: Array, duration: float) -> void:
-	var d := minf(duration * GameState.balance.hitstop_multiplier, GameState.balance.max_hitstop)
+## The active FeelPreset scales light and heavy hits separately (heavy = heavy attacks
+## and finishers with a long base hitstop).
+func freeze(targets: Array, duration: float, heavy: bool = false) -> void:
+	var f := GameState.feel
+	var mult := f.hitstop_heavy_mult if heavy else f.hitstop_light_mult
+	var d := minf(duration * GameState.balance.hitstop_multiplier * mult, GameState.balance.max_hitstop)
 	if d <= 0.0:
 		return
 	for t: Variant in targets:

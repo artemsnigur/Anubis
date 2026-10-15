@@ -13,3 +13,7 @@ func physics_update(dt: float) -> void:
 	if player.try_actions({"dodge": true, "attack": true, "ranged": true, "heal": true, "interact": true}):
 		return
 	player.locomote(player.input.move_world(), player.stats.run_speed, dt)
+
+
+func accepts(_kind: StringName) -> bool:
+	return true

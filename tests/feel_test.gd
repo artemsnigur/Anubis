@@ -150,6 +150,12 @@ func _check(cond: bool, msg: String) -> void:
 		print("FAIL ", msg)
 
 
+## Frame (0 = input frame) on which a window opening at state time `t` is first open:
+## the state's first update runs in the input tick with time = 1 tick.
+func _open_frame(t: float) -> int:
+	return maxi(ceili(t * 60.0 - 0.001) - 1, 0)
+
+
 func _r(key: String) -> int:
 	return int(FeelProbe.results.get(key, -1))
 
@@ -246,13 +252,28 @@ func _run() -> void:
 	await _reset()
 	f0 = await _press(&"attack_light")
 	await _hold(&"move_down")
-	var move_at := -1
-	for i in 60:
-		await get_tree().physics_frame
-		if player.fsm.is_in(&"Move"):
-			move_at = Engine.get_physics_frames() - f0
-			break
+	await _frames(60)
+	var move_at := _first_entry(&"Move", f0)
+	move_at = move_at - f0 if move_at >= 0 else -1
 	_info("Light: input → movement accepted (move held)", "%d f" % move_at)
+	var l1: AttackData = player.stats.light_attacks[0]
+	var preset := GameState.feel
+	if _strict:
+		_row("  ↳ dodge window opens on its frame (w+a+cancel_delay)", light_dodge, "= %d f" % _open_frame(l1.windup + l1.active + l1.cancel_delay), _open_frame(l1.windup + l1.active + l1.cancel_delay), _open_frame(l1.windup + l1.active + l1.cancel_delay))
+		_row("  ↳ chain window opens on its frame (w+a+chain_delay)", light_chain, "= %d f" % _open_frame(l1.windup + l1.active + l1.chain_delay), _open_frame(l1.windup + l1.active + l1.chain_delay), _open_frame(l1.windup + l1.active + l1.chain_delay))
+		var mv := _open_frame(l1.windup + l1.active + l1.recovery * preset.walk_out_recovery)
+		_row("  ↳ walk-out window opens on its frame", move_at, "= %d f" % mv, mv, mv)
+	# One buffered dodge press, 6 frames before the window: must fire on the first legal frame.
+	await _reset()
+	f0 = await _press(&"attack_light")
+	var open_at := f0 + _open_frame(l1.windup + l1.active + l1.cancel_delay)
+	while Engine.get_physics_frames() < open_at - 7:
+		await get_tree().physics_frame
+	await _press(&"dodge")
+	await _frames(20)
+	var single := _first_entry(&"Dodge", f0)
+	_row("Buffered dodge (pressed 6 f early) fires on the first legal frame", single - f0 if single >= 0 else -1,
+		"= %d f" % (open_at - f0), open_at - f0 if _strict else -1, open_at - f0)
 	var lock := mini(mini(light_dodge, light_chain), move_at if move_at >= 0 else 999)
 	_info("Light: total lockout (frames until any of move / attack / dodge is accepted)", "%d f" % lock)
 	# Full 3-hit chain, attack mashed: when does each hit start?
@@ -282,21 +303,25 @@ func _run() -> void:
 	await _frames(40)
 	_row("Dodge: input → movement", _r("dodge_move"), "same frame (0)", 0, 0)
 	_row("Dodge: input → first i-frame", _r("dodge_iframe"), "≤ 2 f", 0, 2)
-	_info("Dodge: i-frame window", "%d f" % _r("dodge_iframe_len"))
+	var expect_len := 0
+	for k in 60:
+		var t := (k + 1) / 60.0
+		if t >= GameState.feel.iframe_start - 0.0001 and t < GameState.feel.iframe_end - 0.0001:
+			expect_len += 1
+	_row("Dodge: i-frame window length", _r("dodge_iframe_len"), "= %d f (preset)" % expect_len, expect_len if _strict else -1, expect_len)
 	await _reset()
 	f0 = await _press(&"dodge")
 	var att := await _mash_until(&"attack_light", &"Attack", f0, 50)
-	_info("Dodge: input → attack accepted (attack mashed)", "%d f" % (att - f0 if att >= 0 else -1))
+	var exp_att := _open_frame(GameState.feel.dodge_attack_cancel)
+	_row("Dodge: input → attack accepted (attack mashed)", att - f0 if att >= 0 else -1, "= %d f (preset)" % exp_att, exp_att if _strict else -1, exp_att)
 	await _reset()
 	f0 = await _press(&"dodge")
 	await _hold(&"move_down")
-	move_at = -1
-	for i in 60:
-		await get_tree().physics_frame
-		if player.fsm.is_in(&"Move"):
-			move_at = Engine.get_physics_frames() - f0
-			break
-	_info("Dodge: input → movement accepted (move held)", "%d f" % move_at)
+	await _frames(60)
+	move_at = _first_entry(&"Move", f0)
+	move_at = move_at - f0 if move_at >= 0 else -1
+	var exp_mv := _open_frame(GameState.feel.dodge_move_cancel)
+	_row("Dodge: input → movement accepted (move held)", move_at, "= %d f (preset)" % exp_mv, exp_mv if _strict else -1, exp_mv)
 
 	# Crossfades (AnimationTree transition times).
 	_row("Crossfade locomotion → light_1", FeelProbe.xfade_frames(&"locomotion", &"light_1"), "0–3 f", 0, 3)
@@ -371,6 +396,7 @@ func _face_dummy() -> void:
 	dummy.health.revive_full()
 	dummy.poise.restore()
 	dummy.fsm.transition_to(&"Idle")
+	dummy.teleport_to(Vector3.ZERO, 0.0)
 	player.teleport_to(Vector3(0, 0.1, 1.8), 0.0)
 	player.fsm.transition_to(&"Move")
 	await _frames(30)

@@ -25,11 +25,25 @@ func physics_update(dt: float) -> void:
 		if time_in_state >= attack.windup + 0.05:
 			_fire()
 		return
-	var r := time_in_state - attack.windup - attack.active
-	if r >= attack.cancel_delay and player.try_actions({"dodge": true, "attack": true}):
+	if accepts(&"dodge") and player.try_actions({"dodge": true, "attack": true}):
 		return
 	if time_in_state >= attack.total_time():
 		transition(&"Move")
+
+
+func accepts(kind: StringName) -> bool:
+	if not _fired:
+		return false
+	var r := time_in_state - attack.windup - attack.active
+	return (kind == &"dodge" or kind == &"attack") and r >= attack.cancel_delay
+
+
+func windows() -> Dictionary:
+	var w := attack.windup
+	var a := attack.active
+	return {"name": "eye of ra", "t": time_in_state, "total": attack.total_time(),
+		"phases": [[w, Color(1.0, 0.85, 0.3)], [a, Color(1.0, 0.25, 0.2)], [attack.recovery, Color(0.45, 0.55, 0.7)]],
+		"marks": {"dodge": w + a + attack.cancel_delay, "attack": w + a + attack.cancel_delay, "move": attack.total_time()}}
 
 
 func on_anim_event(event: StringName, tag: StringName) -> void:

@@ -41,6 +41,10 @@ var _entries: Array = []          # [frame, state] entered this tick (from state
 var _frozen_since: Dictionary = {}   # Combatant -> first frozen frame
 var _lock: Dictionary = {}
 var _xfade_cache: Dictionary = {}
+var _bones: Array[Node3D] = []
+var _bone_prev: Array[Quaternion] = []
+## Largest bone rotation (degrees) between the last two ticks: the actual visible pose change.
+var bone_delta_deg: float = 0.0
 
 
 func _ready() -> void:
@@ -59,8 +63,14 @@ func _find_player() -> Player:
 	_pending.clear()
 	_snap = {}
 	_xfade_cache.clear()
+	_bones.clear()
+	_bone_prev.clear()
 	if _player != null:
 		_player.fsm.state_changed.connect(_on_state_changed)
+		var pr := _player.rig as PlaceholderRig
+		if pr != null:
+			for b: Node3D in pr.bones.values():
+				_bones.append(b)
 	return _player
 
 
@@ -121,7 +131,7 @@ func _sample() -> Dictionary:
 	return {
 		"speed": flat.length(), "vel": flat, "yaw": _player.rotation.y, "vis": _player.visual.transform,
 		"blend": _player.animator.get_locomotion_blend(),
-		"anim": _player.animator.current, "state": _player.fsm.current_name(),
+		"anim": _player.animator.current, "state": _player.fsm.current_name(), "bones": bone_delta_deg,
 		"active": _player.hitbox.active, "inv": _player.hurtbox.invulnerable, "frozen": _player.frozen_tick,
 	}
 
@@ -130,6 +140,7 @@ func _post_sample() -> void:
 	if _player == null or not is_instance_valid(_player) or not _player.is_inside_tree():
 		return
 	var f := Engine.get_physics_frames()
+	_measure_bones()
 	var s := _sample()
 	if not _snap.is_empty():
 		for i in range(_pending.size() - 1, -1, -1):
@@ -143,8 +154,26 @@ func _post_sample() -> void:
 	_snap = s
 
 
+func _measure_bones() -> void:
+	bone_delta_deg = 0.0
+	var first := _bone_prev.size() != _bones.size()
+	if first:
+		_bone_prev.resize(_bones.size())
+	for i in _bones.size():
+		var q := _bones[i].quaternion
+		if not first:
+			bone_delta_deg = maxf(bone_delta_deg, rad_to_deg(q.angle_to(_bone_prev[i])))
+		_bone_prev[i] = q
+
+
+## Visible pose change: a bone moved more than 0.75° since the last tick (idle breathing
+## stays well below), the facing turned, or the procedural layer moved. Rigs without
+## bones fall back to the animation state / blend.
 func _pose_changed(s: Dictionary, base: Dictionary) -> bool:
-	if s["anim"] != base["anim"] or absf(float(s["blend"]) - float(base["blend"])) > 0.01:
+	if not _bones.is_empty():
+		if float(s["bones"]) > 0.75:
+			return true
+	elif s["anim"] != base["anim"] or absf(float(s["blend"]) - float(base["blend"])) > 0.01:
 		return true
 	if absf(angle_difference(float(s["yaw"]), float(base["yaw"]))) > deg_to_rad(0.5):
 		return true

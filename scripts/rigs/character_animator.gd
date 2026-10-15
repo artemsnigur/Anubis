@@ -25,6 +25,10 @@ var current: StringName = LOCOMOTION
 var speed_scale: float = 1.0
 ## Extra playback rate of the current action clip (e.g. a dodge retimed by the preset).
 var action_speed: float = 1.0
+## The state machine applies a travel() two advances later (path, then fade start) and a
+## start() one advance later. When true, play() primes the tree with zero-time advances so
+## the new clip starts in the tick it was requested (the hero; enemies keep the old timing).
+var prime_transitions: bool = false
 var _states: Array[StringName] = []
 ## Moving locomotion points: [[blend position, stride (m per cycle), clip length], ...]
 var _gait: Array = []
@@ -114,8 +118,13 @@ func play(logical: StringName, restart: bool = true) -> void:
 		return
 	if logical == current:
 		playback.start(logical, true)
+		if prime_transitions:
+			tree.advance(0.0)
 	else:
 		playback.travel(logical)
+		if prime_transitions:
+			tree.advance(0.0)
+			tree.advance(0.0)
 	current = logical
 
 

@@ -23,6 +23,13 @@ func physics_update(dt: float) -> void:
 		transition(&"Move")
 
 
+func windows() -> Dictionary:
+	var s := player.stats
+	return {"name": "ankh", "t": time_in_state, "total": s.heal_duration,
+		"phases": [[s.heal_apply_time, Color(0.4, 1.0, 0.8)], [s.heal_duration - s.heal_apply_time, Color(0.45, 0.55, 0.7)]],
+		"marks": {"move": s.heal_duration}}
+
+
 func on_anim_event(event: StringName, tag: StringName) -> void:
 	if tag == &"heal" and event == &"heal_apply":
 		_apply()

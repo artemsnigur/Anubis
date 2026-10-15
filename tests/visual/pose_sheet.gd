@@ -111,7 +111,7 @@ func _clip_table(rig_key: String) -> Dictionary:
 	t[&"heavy_release"] = {"windup": h.windup, "active": h.active, "recovery": h.recovery}
 	var ra := s.ranged_attack
 	t[&"cast"] = {"windup": ra.windup, "active": ra.active, "recovery": ra.recovery}
-	t[&"dodge"] = {"length": s.dodge_duration}
+	t[&"dodge"] = {"length": GameState.feel.dodge_duration}
 	t[&"heal"] = {"length": s.heal_duration, "apply": s.heal_apply_time}
 	return t
 
