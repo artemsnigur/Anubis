@@ -33,6 +33,11 @@ var flash_fx: FlashEffect
 var hitstop_left: float = 0.0
 ## True when the last physics tick was frozen by hitstop (for measurements).
 var frozen_tick: bool = false
+## Hit drag: after a freeze the character's time runs slower for a moment (a blade biting
+## through), easing from drag_factor back to 1 over drag_time.
+var drag_left: float = 0.0
+var drag_time: float = 0.0
+var drag_factor: float = 1.0
 var knockback_velocity: Vector3 = Vector3.ZERO
 ## Desired horizontal velocity, written by states.
 var move_velocity: Vector3 = Vector3.ZERO
@@ -138,6 +143,9 @@ func _physics_process(delta: float) -> void:
 	else:
 		hitstop_left = 0.0
 	var dt := 0.0 if frozen else delta
+	if not frozen and drag_left > 0.0:
+		dt *= lerpf(drag_factor, 1.0, 1.0 - drag_left / maxf(drag_time, 0.001))
+		drag_left -= delta
 	_pre_update(dt, delta)
 	poise.tick(dt)
 	fsm.physics_update(dt * anim_speed)
@@ -187,6 +195,12 @@ func _on_landed(impact_speed: float) -> void:
 
 func apply_hitstop(duration: float) -> void:
 	hitstop_left = maxf(hitstop_left, duration)
+
+
+func apply_hit_drag(duration: float, factor: float) -> void:
+	drag_time = duration
+	drag_left = duration
+	drag_factor = factor
 
 
 # --- facing ----------------------------------------------------------------------
@@ -272,6 +286,8 @@ func _on_hit_received(hit: HitInfo) -> void:
 		damaged.emit(hit)
 		return
 	apply_knockback(hit.direction, hit.knockback)
+	if hit.knockback * (1.0 - knockback_resist) >= 4.0:
+		Vfx.dust(global_position + hit.direction * 0.3, 5, 0.9)
 	flash_fx.flash(Color(1.0, 0.95, 0.85), 0.16 if hit.is_heavy else 0.12)
 	motion.recoil(hit.direction, 0.6 if hit.is_heavy else 0.35)
 	# Visual push, independent of knockback resistance: every hit reads on the body.

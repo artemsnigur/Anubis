@@ -68,6 +68,11 @@ func poll(local_dt: float, real_dt: float) -> bool:
 
 ## Simulates a press from a bot / test.
 func bot_press(action: StringName) -> void:
+	push(action)
+
+
+## Puts a press into the buffer as if it had just happened (bots, queued actions).
+func push(action: StringName) -> void:
 	_buffer[action] = buffer_time()
 
 

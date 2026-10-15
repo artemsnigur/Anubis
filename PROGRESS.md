@@ -216,3 +216,35 @@ Measured first, then fixed; numbers in `FEEL_REPORT.md` (Before / After tables, 
 
 Things only a human can judge: whether Snappy or Weighty should be the default, the size of the spring
 leans / squash on screen, the smear look, the camera lead distance, and the feel on a physical gamepad.
+
+## Weight pass — grounded hero, sword, impact (branch `weight-pass`)
+After playing the snappy pass the direction changed: a body with real weight, deliberate rolls and swings,
+hits that land, a sword instead of the khopesh. Details and numbers: `FEEL_REPORT.md` → "Weight pass";
+reasons: `DECISIONS.md` → "Weight pass".
+- **Sword:** procedural bronze sword; sword poses authored as grip / blade / edge in root space and solved
+  with arm IK, two-handed grips for the finisher and the heavy. New clips: guard stance, idle, walk / run
+  (sword carried low, trailing at a run), diagonal cut, rising backhand, two-handed overhead chop, charged
+  two-handed sweep, roll with push-off and get-up, hit reactions, cast / heal / rest with the sword.
+- **Grounded preset (default):** heading-based movement (turns with the body, brakes before a reversal),
+  momentum in and out of runs, heavier gait (low hips, bigger bob, footfall squash), slower attack tempo
+  with long anticipation and held follow-through, committed windows with queued inputs, longer roll.
+- **Impact:** longer hitstop, blade drag after the freeze, attacker recoil, camera kick, rumble, layered
+  thud, bigger target push, knock-back dust, longer enemy flinches, killing-blow freeze.
+- Snappy and Old remain for comparison on F7 (attacks replayed at tempo 2.2).
+
+### Try this in the arena (weight pass)
+1. From a standstill, push the stick / key 90° and 180° away: does the body turn first and then build
+   speed over a few steps, instead of sliding off instantly?
+2. Run and reverse: does he plant, skid and slow down, turn around and push off again (about half a second)?
+   Run and let go: does he carry a step or two before settling?
+3. Run with the sword: is it carried low and trailing, with a heavy, bouncing stride?
+4. Light attack x3 on the dummy: diagonal cut → rising backhand → two-handed overhead chop. Do the windups
+   read (sword cocked, a beat of tension), does each cut step into the target and end in a held
+   follow-through, does the chop land heavy?
+5. On each hit: do you feel the freeze, the blade dragging for a moment after it, the camera kick and the
+   thud? Does the dummy / an F8 scarab or jackal visibly take the hit (push, flinch, dust)?
+6. Press dodge in the middle of a swing: it should wait for the follow-through and then roll — never
+   disappear. Is that delay acceptable, or too long?
+7. Roll from a standstill and from a run: drop, push off, roll, get up. Too slow? Too far?
+8. Heavy: hold to charge (trembling), release a two-handed sweep. Weighty enough?
+9. F7 to compare Grounded ↔ Snappy ↔ Old; F6 to tune live (Movement: turn rates, accel; Dodge; Impact).

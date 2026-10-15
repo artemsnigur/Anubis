@@ -13,8 +13,8 @@ const PLAYER_STATS_PATH := "res://resources/balance/player_stats.tres"
 const LEVELING_PATH := "res://resources/balance/leveling.tres"
 const STATS: Array[StringName] = [&"vitality", &"strength", &"spirit"]
 ## Feel presets in F7 order.
-const FEEL_PRESET_PATHS: Array[String] = ["res://resources/feel/old.tres", "res://resources/feel/snappy.tres", "res://resources/feel/weighty.tres"]
-const DEFAULT_FEEL := &"snappy"
+const FEEL_PRESET_PATHS: Array[String] = ["res://resources/feel/grounded.tres", "res://resources/feel/snappy.tres", "res://resources/feel/old.tres"]
+const DEFAULT_FEEL := &"grounded"
 
 var balance: BalanceConfig
 var player_stats: PlayerStats

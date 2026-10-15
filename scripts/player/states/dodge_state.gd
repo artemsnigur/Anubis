@@ -1,12 +1,14 @@
 extends PlayerState
-## Dodge roll. Starts moving in the tick the button is read, direction from the move
-## input (not the facing), front-loaded distance curve 1-(1-u)^p, i-frames in
-## [iframe_start, iframe_end), passes through enemies. Windows: attack after
-## dodge_attack_cancel, another dodge after dodge_dodge_cancel, walking after
-## dodge_move_cancel. The clip is time-scaled to the preset's duration.
+## Dodge roll. Reacts in the tick the button is read (the body drops and pushes off),
+## direction from the move input (not the facing) and committed for the whole roll.
+## Speed profile: a push-off ramp (dodge_ramp_time) into a decaying burst (1-u)^(p-1),
+## normalised so the roll covers dodge_distance. I-frames in [iframe_start, iframe_end),
+## passes through enemies. Windows: attack after dodge_attack_cancel, another dodge after
+## dodge_dodge_cancel, walking after dodge_move_cancel. The clip is retimed to the preset.
 
 var _dir: Vector3 = Vector3.FORWARD
 var _speed: float = 0.0
+var _norm: float = 1.0
 
 
 func enter(_msg: Dictionary) -> void:
@@ -16,6 +18,12 @@ func enter(_msg: Dictionary) -> void:
 	var m := player.input.move_world()
 	_dir = m.normalized() if m.length() > 0.2 else player.forward()
 	player.face_instant(_dir)
+	# Normalisation of the speed profile (midpoint rule, matches the per-tick sampling).
+	_norm = 0.0
+	var d := maxf(f.dodge_duration, 0.05)
+	for i in 120:
+		_norm += _profile((float(i) + 0.5) / 120.0 * d) * d / 120.0
+	_norm = maxf(_norm, 0.0001)
 	player.animator.play(&"dodge", true)
 	player.animator.set_action_speed(player.animator.clip_length(&"dodge") / maxf(f.dodge_duration, 0.05))
 	player.motion.dodge_squash()
@@ -62,21 +70,30 @@ func physics_update(dt: float) -> void:
 	# Distance curve D(u) = 1-(1-u)^p; velocity = the distance of this tick / dt, so the
 	# first tick already moves and the total is exactly dodge_distance.
 	if dt > 0.0:
-		var p := f.dodge_curve_power
-		var u0 := clampf((time_in_state - dt) / d, 0.0, 1.0)
-		var u1 := clampf(time_in_state / d, 0.0, 1.0)
-		_speed = f.dodge_distance * (pow(1.0 - u0, p) - pow(1.0 - u1, p)) / dt
+		_speed = f.dodge_distance * _profile(time_in_state - dt * 0.5) / _norm
 	player.move_velocity = _dir * _speed * player.speed_multiplier
 	if accepts(&"attack") and player.try_actions({"attack": true, "ranged": true}):
 		return
 	if accepts(&"dodge") and player.try_actions({"dodge": true}):
 		return
 	if reached(d):
-		player.move_velocity = _dir * player.stats.run_speed * f.dodge_exit_carry
+		player.move_velocity = _dir * player.run_speed() * f.dodge_exit_carry
 		player.motion.land_squash(0.5)
 		transition(&"Move")
 		return
 	if accepts(&"move") and player.input.move_world().length() > 0.3:
-		player.move_velocity = _dir * minf(_speed, player.stats.run_speed)
+		player.move_velocity = _dir * minf(_speed, player.run_speed())
 		player.motion.land_squash(0.4)
 		transition(&"Move")
+
+
+## Unnormalised speed at time t: smooth push-off ramp times the decaying burst.
+func _profile(t: float) -> float:
+	var f := player.feel
+	var d := maxf(f.dodge_duration, 0.05)
+	var u := clampf(t / d, 0.0, 1.0)
+	var ramp := 1.0
+	if f.dodge_ramp_time > 0.0:
+		var r := clampf(t / f.dodge_ramp_time, 0.0, 1.0)
+		ramp = r * r * (3.0 - 2.0 * r)
+	return ramp * pow(1.0 - u, maxf(f.dodge_curve_power - 1.0, 0.0))

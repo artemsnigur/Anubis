@@ -3,7 +3,7 @@ extends CanvasLayer
 ##  F3 - overlay with FPS and the current state of every state machine nearby.
 ##        Includes the FeelProbe section (input latencies, lockouts in 60 Hz frames).
 ##  F6 - feel tuning panel (live editor of the active FeelPreset).
-##  F7 - next feel preset (Old -> Snappy -> Weighty), shown as a toast.
+##  F7 - next feel preset (Grounded -> Snappy -> Old), shown as a toast.
 ##  F4 - draws hitboxes (red when active) and hurtboxes (green, blue = invulnerable).
 
 var overlay_visible: bool = false

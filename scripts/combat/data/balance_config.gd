@@ -19,7 +19,7 @@ extends Resource
 
 @export_group("Hitstop / feel")
 @export var hitstop_multiplier: float = 1.0
-@export var max_hitstop: float = 0.12
+@export var max_hitstop: float = 0.22
 @export var player_hurt_hitstop: float = 0.08
 @export var shake_on_player_hurt: float = 0.45
 

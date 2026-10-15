@@ -6,7 +6,7 @@ signal closed
 
 const STAT_INFO := {
 	&"vitality": ["Vitality", "Maximum health"],
-	&"strength": ["Strength", "Khopesh damage"],
+	&"strength": ["Strength", "Sword damage"],
 	&"spirit": ["Spirit", "Solar energy gain and Eye of Ra damage"],
 }
 

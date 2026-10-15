@@ -95,7 +95,7 @@ func update(dt: float, real_dt: float) -> void:
 func _breathe(f: FeelPreset, dt: float, add: Dictionary) -> void:
 	if f.breathing <= 0.0:
 		return
-	var speed_k := clampf(player.move_velocity.length() / player.stats.run_speed, 0.0, 1.0)
+	var speed_k := clampf(player.move_velocity.length() / player.run_speed(), 0.0, 1.0)
 	_breath_t += dt * lerpf(0.3, 0.95, exertion) * TAU
 	var amp := f.breathing * lerpf(1.0, 2.4, exertion) * (1.0 - 0.6 * speed_k)
 	var b := sin(_breath_t)

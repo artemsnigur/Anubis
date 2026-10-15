@@ -61,7 +61,8 @@ func _run() -> void:
 	var e0 := player.energy
 	player.input.bot_press(&"attack_light")
 	await _wait(0.45)
-	_check(is_equal_approx(hp0 - dummy.health.current, 14.0), "light hit deals 14 (dealt %.1f)" % (hp0 - dummy.health.current))
+	var l1: AttackData = player.stats.light_attacks[0]
+	_check(is_equal_approx(hp0 - dummy.health.current, l1.damage), "light hit deals %.0f (dealt %.1f)" % [l1.damage, hp0 - dummy.health.current])
 	_check(_hitstop_seen_player and _hitstop_seen_dummy, "local hitstop freezes attacker and target")
 	_check(is_equal_approx(player.energy - e0, 0.25), "melee hit grants 0.25 solar energy (%.2f)" % (player.energy - e0))
 	_check(player.game_camera != null and player.game_camera.trauma >= 0.0, "camera registered for shake")
@@ -70,13 +71,15 @@ func _run() -> void:
 	# 2. Fully charged heavy.
 	await _reset_dummy()
 	hp0 = dummy.health.current
+	var hv := player.stats.heavy_attack
 	player.input.bot_hold(&"attack_heavy", true)
 	player.input.bot_press(&"attack_heavy")
-	await _wait(0.4 + 0.85)
+	await _wait((hv.windup + player.stats.heavy_max_charge) / player.feel.attack_tempo + 0.05)
 	player.input.bot_hold(&"attack_heavy", false)
 	await _wait(0.5)
 	var heavy := hp0 - dummy.health.current
-	_check(heavy > 55.0, "charged heavy deals ~57.6 (dealt %.1f)" % heavy)
+	var full := hv.damage * player.stats.heavy_charge_damage_mult
+	_check(heavy > full * 0.95, "charged heavy deals ~%.1f (dealt %.1f)" % [full, heavy])
 	await _wait(0.6)
 
 	# 3. Poise break -> stagger -> bonus damage.
@@ -92,15 +95,16 @@ func _run() -> void:
 	if staggered:
 		hp0 = dummy.health.current
 		player.input.bot_press(&"attack_light")
-		await _wait(0.4)
+		# The press is queued through the finisher's recovery and lands at the chain point.
+		await _wait(1.0)
 		var dealt := hp0 - dummy.health.current
-		_check(dealt > 14.5, "stagger window multiplies damage (dealt %.1f)" % dealt)
+		_check(dealt > l1.damage + 0.5, "stagger window multiplies damage (dealt %.1f)" % dealt)
 	await _wait(2.5)
 
 	# 4. Dodge i-frames.
 	player.health.revive_full()
 	player.input.bot_press(&"dodge")
-	await _wait(0.12)
+	await _wait((player.feel.iframe_start + player.feel.iframe_end) * 0.5)
 	var h := HitInfo.new()
 	h.damage = 20.0
 	h.direction = Vector3.FORWARD
@@ -155,9 +159,9 @@ func _run() -> void:
 	player.teleport_to(Vector3(0, 0.1, 3.0), 0.0)
 	await _wait(0.3)
 	player.input.bot_press(&"dodge")
-	await _wait(0.16)
+	await _wait(player.feel.dodge_attack_cancel - 0.1)
 	player.input.bot_press(&"attack_light")
-	await _wait(0.14)
+	await _wait(0.15)
 	_check(player.fsm.is_in(&"Attack"), "buffered attack fires out of the dodge (state %s)" % player.fsm.current_name())
 	await _wait(0.6)
 

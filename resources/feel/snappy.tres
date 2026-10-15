@@ -6,3 +6,4 @@
 script = ExtResource("1_feel")
 id = &"snappy"
 display_name = "Snappy"
+attack_tempo = 2.2

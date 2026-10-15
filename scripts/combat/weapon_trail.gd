@@ -6,7 +6,7 @@ extends MeshInstance3D
 
 const SHADER := preload("res://assets/shaders/trail.gdshader")
 
-@export var lifetime: float = 0.22
+@export var lifetime: float = 0.16
 @export var subdivisions: int = 4
 @export var core_color: Color = Color(1.0, 0.88, 0.55)
 @export var edge_color: Color = Color(0.2, 0.9, 0.85)
@@ -19,7 +19,7 @@ var _time: float = 0.0
 var _imesh: ImmediateMesh
 var _mat: ShaderMaterial
 ## Current brightness of the ribbon (HDR, so it blooms).
-var intensity: float = 3.2
+var intensity: float = 1.3
 
 
 func _ready() -> void:

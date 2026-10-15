@@ -24,3 +24,4 @@ strafe_speed = 2.6
 think_interval = 0.2
 attacks = Array[ExtResource("1_88buq")]([ExtResource("2_iaxpi"), ExtResource("3_g0wgc")])
 evade_chance = 0.35
+flinch_duration = 0.35

@@ -6,7 +6,7 @@ extends Node
 ## (pressed every other frame) and the frame it actually executes is recorded.
 ## godot --headless res://tests/feel_test.tscn                      measure + check the targets
 ## godot --headless res://tests/feel_test.tscn -- --measure-only     measure only (the "Before" table)
-## Add `--preset=old|snappy|weighty` to measure another feel preset (default: snappy).
+## Add `--preset=grounded|snappy|old` to measure another feel preset (default: grounded).
 ## Add `--report=<path>` to also write the Markdown table to a file.
 
 const RUN_FRAMES := 100
@@ -141,6 +141,20 @@ func _row(metric: String, frames: int, target: String, lo: int, hi: int, duratio
 		print("FAIL ", metric, " = ", frames, " (target ", target, ")")
 
 
+## Row whose target comes from the preset under test (FeelProbe.TARGETS_BY_PRESET).
+func _rowk(metric: String, frames: int, key: String, duration: bool = false) -> void:
+	var t := FeelProbe.targets()
+	if not t.has(key):
+		_row(metric, frames, "–", -1, -1, duration)
+		return
+	var lo := int(t[key][0])
+	var hi := int(t[key][1])
+	var text := ("= %d f" % lo) if lo == hi else ("%d–%d f" % [lo, hi])
+	if duration:
+		text += " (%d–%d ms)" % [roundi(lo * 1000.0 / 60.0), roundi(hi * 1000.0 / 60.0)]
+	_row(metric, frames, text, lo, hi, duration)
+
+
 func _info(metric: String, value: String) -> void:
 	rows.append("| %s | %s | – | |" % [metric, value])
 
@@ -208,9 +222,9 @@ func _run() -> void:
 	var run_dir := player.velocity.normalized()
 	var lag := (player.get_global_transform_interpolated().origin + Vector3.UP * cam.target_height - cam.get_focus_position())
 	lag.y = 0.0
-	_row("Input → first velocity change", _r("move_vel"), "same frame (0)", 0, 0)
-	_row("Input → first visible pose change", _r("move_pose"), "≤ 1 f", 0, 1)
-	_row("Idle → 90 % of top speed", _r("move_t90"), "0.08–0.12 s (5–7 f)", 5, 7, true)
+	_rowk("Input → first velocity change", _r("move_vel"), "move_vel")
+	_rowk("Input → first visible pose change", _r("move_pose"), "move_pose")
+	_rowk("Idle → 90 % of top speed", _r("move_t90"), "move_t90", true)
 	await _input_late(func() -> void: Input.action_release(&"move_right"))
 	# Camera after the stop: first frame from which it stays still (< 0.1 m/s) for 10 frames.
 	var settle := -1
@@ -226,15 +240,15 @@ func _run() -> void:
 		else:
 			still = 0
 		last_focus = fp
-	_row("Top speed → full stop", _r("stop"), "0.06–0.10 s (4–6 f)", 4, 6, true)
+	_rowk("Top speed → full stop", _r("stop"), "stop", true)
 	await _reset(Vector3(-6, 0.1, 9))
 	await _hold(&"move_right")
 	await _frames(60)
 	await _input_late(func() -> void:
 		Input.action_release(&"move_right")
 		Input.action_press(&"move_left"))
-	await _frames(30)
-	_row("180° turn (facing ≤ 10° and ≥ 50 % speed the new way)", _r("turn"), "≤ 0.10 s (≤ 6 f)", 0, 6, true)
+	await _frames(70)
+	_rowk("180° turn (facing ≤ 10° and ≥ 50 % speed the new way)", _r("turn"), "turn", true)
 	_info("  ↳ facing within 10°", "%d f" % _r("turn_face"))
 	_info("  ↳ velocity ≥ 50 % in the new direction", "%d f" % _r("turn_vel"))
 	await _release_all()
@@ -251,13 +265,13 @@ func _run() -> void:
 	await _reset()
 	f0 = await _press(&"attack_light")
 	await _frames(40)
-	_row("Light: input → first anticipation (state + pose)", _r("attack_light_pose"), "same frame (0)", 0, 0)
-	_row("Light: input → first active hitbox frame", _r("attack_light_active"), "6–8 f", 6, 8)
+	_rowk("Light: input → first anticipation (state + pose)", _r("attack_light_pose"), "attack_light_pose")
+	_rowk("Light: input → first active hitbox frame", _r("attack_light_active"), "attack_light_active")
 	await _reset()
 	f0 = await _press(&"attack_light")
 	var dodge_at := await _mash_until(&"dodge", &"Dodge", f0, 50)
 	var light_dodge := dodge_at - f0 if dodge_at >= 0 else 999
-	_row("Light: input → dodge-cancel (dodge mashed)", dodge_at - f0 if dodge_at >= 0 else -1, "≤ 12 f", 0, 12)
+	_rowk("Light: input → dodge-cancel (dodge mashed)", dodge_at - f0 if dodge_at >= 0 else -1, "light_dodge_cancel")
 	await _reset()
 	f0 = await _press(&"attack_light")
 	var chain_at := await _mash_until(&"attack_light", &"Attack", f0, 50, 2)
@@ -324,8 +338,8 @@ func _run() -> void:
 	await _reset()
 	f0 = await _press(&"dodge")
 	await _frames(40)
-	_row("Dodge: input → movement", _r("dodge_move"), "same frame (0)", 0, 0)
-	_row("Dodge: input → first i-frame", _r("dodge_iframe"), "≤ 2 f", 0, 2)
+	_rowk("Dodge: input → movement", _r("dodge_move"), "dodge_move")
+	_rowk("Dodge: input → first i-frame", _r("dodge_iframe"), "dodge_iframe")
 	var expect_len := 0
 	for k in 60:
 		var t := (k + 1) / 60.0
@@ -347,10 +361,10 @@ func _run() -> void:
 	_row("Dodge: input → movement accepted (move held)", move_at, "= %d f (preset)" % exp_mv, exp_mv if _strict else -1, exp_mv)
 
 	# Crossfades (AnimationTree transition times).
-	_row("Crossfade locomotion → light_1", FeelProbe.xfade_frames(&"locomotion", &"light_1"), "0–3 f", 0, 3)
-	_row("Crossfade light_1 → light_2", FeelProbe.xfade_frames(&"light_1", &"light_2"), "0–3 f", 0, 3)
-	_row("Crossfade locomotion → dodge", FeelProbe.xfade_frames(&"locomotion", &"dodge"), "0–3 f", 0, 3)
-	_row("Crossfade light_1 → locomotion", FeelProbe.xfade_frames(&"light_1", &"locomotion"), "≤ 6 f", 0, 6)
+	_rowk("Crossfade locomotion → light_1", FeelProbe.xfade_frames(&"locomotion", &"light_1"), "xfade_combat")
+	_rowk("Crossfade light_1 → light_2", FeelProbe.xfade_frames(&"light_1", &"light_2"), "xfade_combat")
+	_rowk("Crossfade locomotion → dodge", FeelProbe.xfade_frames(&"locomotion", &"dodge"), "xfade_combat")
+	_rowk("Crossfade light_1 → locomotion", FeelProbe.xfade_frames(&"light_1", &"locomotion"), "xfade_loco")
 	_info("Locomotion idle ↔ walk ↔ run", "BlendSpace1D driven by speed every frame (no crossfade)")
 
 	# Hitstop and buffered input against a training dummy.
@@ -361,8 +375,8 @@ func _run() -> void:
 	await _face_dummy()
 	f0 = await _press(&"attack_light")
 	await _frames(40)
-	_info("Light hit: hitstop on the hero", "%d f (%d ms)" % [_r("hitstop_player"), roundi(_r("hitstop_player") * 1000.0 / 60.0)])
-	_info("Light hit: hitstop on the target", "%d f (%d ms)" % [_r("hitstop_target"), roundi(_r("hitstop_target") * 1000.0 / 60.0)])
+	_rowk("Light hit: hitstop on the hero", _r("hitstop_player"), "hitstop_player", true)
+	_rowk("Light hit: hitstop on the target", _r("hitstop_target"), "hitstop_target", true)
 	_info("Light hit: target reaction", "flinch=%s" % str(dummy.fsm.previous_name == &"Flinch" or dummy.fsm.is_in(&"Flinch")))
 	# A single dodge press during the hero's hitstop must execute.
 	await _face_dummy()

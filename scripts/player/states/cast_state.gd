@@ -13,9 +13,14 @@ func enter(_msg: Dictionary) -> void:
 	_dir = player.attack_aim(player.stats.ranged_range * 0.6)["dir"]
 	player.face_instant(_dir)
 	player.move_velocity *= 0.3
+	player.anim_speed = player.feel.attack_tempo
 	player.animator.play(&"cast", true)
 	_fired = false
 	Vfx.glint(player.global_position + Vector3.UP * 1.3, Color(1.0, 0.8, 0.35), 0.9, 0.2)
+
+
+func exit() -> void:
+	player.anim_speed = 1.0
 
 
 func physics_update(dt: float) -> void:

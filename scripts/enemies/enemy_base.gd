@@ -333,6 +333,9 @@ func _on_hit_received(hit: HitInfo) -> void:
 	if hit_burst != &"sparks":
 		Vfx.sand_burst(p, hit.direction, 18 if hit.is_heavy else 10)
 	AudioManager.play_event(&"hit_heavy" if hit.is_heavy else hit_sound, p)
+	# The sword's weight: a low thud under every blow from the hero.
+	if hit.attacker is Player and not hit.is_heavy and not hit.is_projectile:
+		AudioManager.play_event(&"hit_heavy", p, -7.0)
 
 
 func _react_to_hit(hit: HitInfo) -> void:

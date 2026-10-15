@@ -2,10 +2,11 @@ class_name FeelPreset
 extends Resource
 ## Every "game feel" parameter of the hero in one resource (movement, input buffer,
 ## cancel windows, dodge, impact, camera, procedural animation layers).
-## Presets live in resources/feel/: old.tres (the values before the feel pass, for
-## comparison), snappy.tres (default) and weighty.tres. F7 cycles them in game, F6 edits
-## the active one live. Attack timings (windup / active / recovery, chain and cancel
-## delays) stay in AttackData because the placeholder clips are generated from them.
+## Presets live in resources/feel/: grounded.tres (default: weight, momentum, commitment),
+## snappy.tres (the first feel pass) and old.tres (values before any feel pass). F7 cycles
+## them in game, F6 edits the active one live. Attack timings (windup / active / recovery,
+## chain and cancel delays) stay in AttackData because the placeholder clips are generated
+## from them; attack_tempo replays them faster for the lighter presets.
 
 @export var id: StringName = &"snappy"
 @export var display_name: String = "Snappy"
@@ -22,6 +23,19 @@ extends Resource
 @export_range(0.5, 3.0) var stick_response_exponent: float = 1.3
 
 @export_group("Movement")
+## Multiplies PlayerStats.run_speed.
+@export var run_speed_mult: float = 1.0
+## Heading model: the body turns toward the input at a limited rate and moves where it
+## faces; a sharp reversal at speed brakes first, then pivots. Off = velocity vector model.
+@export var heading_locomotion: bool = false
+## Turn rate (deg/s) standing / walking and at full run (heading model).
+@export var turn_rate_slow_deg: float = 600.0
+@export var turn_rate_run_deg: float = 300.0
+## Input this far behind the facing at more than brake_speed_frac of run speed: brake first.
+@export var brake_turn_angle_deg: float = 115.0
+@export_range(0.0, 1.0) var brake_speed_frac: float = 0.35
+## Braking deceleration = decel_linear * this.
+@export var brake_mult: float = 1.3
 ## Speeding up: exponential approach rate (1/s) toward the target velocity ...
 @export var accel_sharpness: float = 16.0
 ## ... plus a linear rate (m/s²) so the exponential tail never drags.
@@ -49,6 +63,8 @@ extends Resource
 @export var speed_matched_locomotion: bool = true
 
 @export_group("Attacks")
+## Playback / state speed of attacks and casts (1 = the AttackData timings).
+@export var attack_tempo: float = 1.0
 ## Fraction of the entry speed (along the swing) carried into an attack ...
 @export var attack_entry_keep: float = 1.0
 ## ... decaying at this rate (1/s). keep / decay = extra metres when attacking from a run.
@@ -71,6 +87,8 @@ extends Resource
 @export var heavy_windup_dodge_cancel: bool = true
 
 @export_group("Dodge")
+## Push-off: the roll speeds up over this time before the front-loaded burst.
+@export var dodge_ramp_time: float = 0.0
 @export var dodge_duration: float = 0.34
 @export var dodge_distance: float = 4.75
 ## Distance curve 1-(1-u)^p: higher = more front-loaded burst.
@@ -90,6 +108,15 @@ extends Resource
 @export var shake_mult: float = 0.9
 ## Visual push (metres) of whatever the hero hits, even if it resists knockback.
 @export var hit_push: float = 0.12
+## After the freeze the hero's swing is dragged (slowed) for a moment - the blade bites.
+@export var hit_drag_time: float = 0.0
+@export_range(0.05, 1.0) var hit_drag_factor: float = 1.0
+## The hero's body jolts back on contact (recoil strength) ...
+@export var attacker_recoil: float = 0.0
+## ... the camera is kicked along the blow (metres) ...
+@export var camera_kick: float = 0.0
+## ... and the gamepad rumbles.
+@export var rumble: bool = false
 
 @export_group("Camera")
 ## Follow rate (1/s): higher = tighter.

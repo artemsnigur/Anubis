@@ -14,6 +14,9 @@ func _ready() -> void:
 	var w := get_window()
 	w.set_flag(Window.FLAG_NO_FOCUS, true)
 	w.set_flag(Window.FLAG_ALWAYS_ON_TOP, false)
+	# Ignore every key / mouse event: if the window ever gets focus, typing elsewhere
+	# must not pause the game or change settings.
+	w.set_disable_input(true)
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--") and a.contains("="):
 			var kv := a.substr(2).split("=", true, 1)

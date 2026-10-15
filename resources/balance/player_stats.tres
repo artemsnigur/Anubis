@@ -13,3 +13,6 @@ script = ExtResource("7_pwj2u")
 light_attacks = Array[ExtResource("2_ybgxc")]([ExtResource("3_s1r4p"), ExtResource("4_w3wjf"), ExtResource("5_q8p7k")])
 heavy_attack = ExtResource("1_4t5ik")
 ranged_attack = ExtResource("6_2lgn8")
+hurt_duration = 0.36
+heavy_max_charge = 0.9
+heavy_charge_damage_mult = 1.7

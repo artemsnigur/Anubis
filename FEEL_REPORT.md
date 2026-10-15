@@ -268,3 +268,106 @@ Full Snappy table (as printed by `godot --headless res://tests/feel_test.tscn`):
   response (kept: it removes jitter on 120/144 Hz screens).
 - Gamepad response curve on a physical controller.
 - The checklist is in `PROGRESS.md` → "Try this in the arena".
+
+---
+
+# Weight pass (branch `weight-pass`)
+
+The user played the snappy pass and found it too fast and too light. New brief: a body with real weight that
+builds momentum, commits and recovers; grounded, deliberate rolls and swings; hits that land in both the
+attacker and the target; a sword instead of the khopesh; everything natural. The frame-0 targets above
+belonged to the first brief and are kept only for the Snappy preset. **Grounded** (now the default) has its
+own targets (`FeelProbe.TARGETS_BY_PRESET`). The one rule kept: the body's first visible reaction to any
+input is on the input frame — weight comes from what follows, not from lag.
+
+## Grounded vs Snappy (same harness, same arena)
+
+| Metric | Grounded (default) | Grounded target | Snappy preset (F7; sword attacks at tempo 2.2) |
+|---|---|---|---|
+| Input → first velocity change | 0 f ✅ | 0–1 f | 0 f |
+| Input → first visible pose change | 0 f ✅ | 0–1 f | 0 f |
+| Idle → 90 % of top speed | 18 f (300 ms) ✅ | 15–27 f (250–450 ms) | 5 f (83 ms) |
+| Top speed → full stop | 14 f (233 ms) ✅ | 11–21 f (183–350 ms) | 4 f (67 ms) |
+| 180° turn | 31 f (517 ms) ✅ | 18–40 f (300–667 ms) | 3 f (50 ms) |
+| ↳ facing within 10° | 31 f  | – | 2 f |
+| ↳ velocity ≥ 50 % in the new direction | 27 f  | – | 3 f |
+| Camera: input → camera starts moving | 1 f  | – | 1 f |
+| Camera: lag behind its target (hero + look-ahead) at full run | 0.61 m  | – | 0.41 m |
+| Camera: comes to rest after the hero stops | 33 f (550 ms)  | – | 17 f (283 ms) |
+| Foot sliding at full run: planted-foot speed | 0.01 m/s  | – | 0.01 m/s |
+| Camera: offset player ↔ screen centre at full run (+ = player behind centre) | 0.84 m  | – | 1.01 m |
+| Light: input → first anticipation (state + pose) | 0 f ✅ | = 0 f | 0 f |
+| Light: input → first active hitbox frame | 14 f ✅ | 13–17 f | 6 f |
+| Light: input → dodge-cancel (dodge mashed) | 27 f ✅ | 24–30 f | 13 f |
+| Light: input → next attack of the chain (attack mashed) | 29 f  | – | 14 f |
+| Light: input → movement accepted (move held) | 39 f  | – | 15 f |
+| ↳ dodge window opens on its frame (w+a+cancel_delay) | 27 f ✅ | = 27 f | – |
+| ↳ chain window opens on its frame (w+a+chain_delay) | 29 f ✅ | = 29 f | – |
+| ↳ walk-out window opens on its frame | 39 f ✅ | = 39 f | – |
+| Buffered dodge fires on the first legal frame | 27 f ✅ | = 27 f | 21 f |
+| Light: total lockout (frames until any of move / attack / dodge is accepted) | 27 f  | – | 13 f |
+| Light chain rhythm: hit 1 / 2 / 3 start at frame | 0 / 29 / 57  | – | 0 / 14 / 27 |
+| Attack pressed once early in the windup chains into hit 2 | yes ✅ | yes | yes |
+| ↳ hit 2 starts at frame | 29 f  | – | 14 f |
+| Heavy (tap): input → anticipation | 0 f  | – | 0 f |
+| Heavy (tap): input → active hitbox | 36 f  | – | 17 f |
+| Heavy: input → dodge-cancel (dodge mashed) | 62 f  | – | 1 f |
+| Dodge: input → movement | 1 f ✅ | 0–3 f | 0 f |
+| Dodge: input → first i-frame | 3 f ✅ | 3–5 f | 0 f |
+| Dodge: i-frame window length | 18 f ✅ | = 18 f (preset) | 13 f |
+| Dodge: input → attack accepted (attack mashed) | 28 f ✅ | = 28 f (preset) | 11 f |
+| Dodge: input → movement accepted (move held) | 29 f ✅ | = 29 f (preset) | 15 f |
+| Crossfade locomotion → light_1 | 3 f ✅ | 0–4 f | 1 f |
+| Crossfade light_1 → light_2 | 3 f ✅ | 0–4 f | 1 f |
+| Crossfade locomotion → dodge | 3 f ✅ | 0–4 f | 1 f |
+| Crossfade light_1 → locomotion | 10 f ✅ | 0–10 f | 5 f |
+| Locomotion idle ↔ walk ↔ run | BlendSpace1D driven by speed every frame (no crossfade)  | – | BlendSpace1D driven by speed every frame (no crossfade) |
+| Light hit: hitstop on the hero | 5 f (83 ms) ✅ | 5–6 f (83–100 ms) | 5 f (83 ms) |
+| Light hit: hitstop on the target | 5 f (83 ms) ✅ | 5–6 f (83–100 ms) | 5 f (83 ms) |
+| Light hit: target reaction | flinch=true  | – | flinch=true |
+| Dodge pressed once during hitstop is executed | yes ✅ | yes | yes |
+| ↳ dodge press (in hitstop) → dodge starts | 18 f  | – | 0 f |
+| Attack pressed once during hitstop chains into the next hit | yes ✅ | yes | yes |
+| ↳ attack press (in hitstop) → next hit starts | 21 f  | – | 11 f |
+| Secondary motion: kilt panel swings at a run and settles at rest | yes ✅ | yes | yes |
+| Footstep events report the planted foot | yes ✅ | yes | yes |
+| No additive drift during a 1 s freeze | yes ✅ | yes | yes |
+| Head turns toward a nearby enemy | yes ✅ | yes | yes |
+| Physics interpolation | true  | – | true |
+| Physics ticks per second | 60  | – | 60 |
+
+## What changed and why
+
+- **Sword.** Procedural bronze sword (diamond-section blade, gold guard and pommel). Sword poses are
+  authored as grip position + blade direction + edge direction in the character's root space and solved
+  into shoulder / elbow / wrist rotations by arm IK through the torso of each key — swings are arcs driven
+  by hips and chest, and two-handed holds put the left hand on the grip. Arcs checked from above and from
+  the side with `tests/visual/blade_trace.gd`.
+- **New clips.** Guard (feet wide, knees soft, point forward-down), idle, walk / run (low hips, deep bob,
+  sword carried low and trailing at a run), three cuts (diagonal, rising backhand, two-handed overhead
+  chop into a held crouch), charged two-handed sweep, roll (drop, push off, roll, get up), hit reactions.
+  Each swing: weight drops on frame 0, coil, a beat of tension, accelerating strike with a step, held
+  follow-through, recovery.
+- **Momentum.** Heading model: the body turns toward the input at a capped rate (620°/s standing,
+  330°/s running) and moves where it faces; speed builds at 13 m/s² and bleeds off at 17 m/s²; a reversal
+  at speed brakes (skid, lean back) before the pivot. Run speed 5.4 m/s. Footfalls add a little squash.
+- **Commitment.** Slower attack timings in AttackData (light 0.20–0.36 s windup, 0.42–0.62 s recovery;
+  heavy 0.55 s + charge); dodge-cancel only after the follow-through; no hit-confirm cancel. Inputs are
+  never lost: a dodge or attack pressed from mid-swing is queued to the first legal frame; buffer 0.25 s.
+- **Roll.** 0.62 s: push-off ramp, decaying burst, 4.2 m, i-frames 0.06–0.36 s, then a get-up before
+  attacking (0.48 s) or walking (0.5 s).
+- **Impact.** Hitstop 5 ticks on light hits, 8–9 on the finisher and the heavy (both sides); the hero's
+  swing is dragged for 0.09 s after the freeze (time ×0.3 easing back); the hero jolts back; the camera is
+  kicked along the blow; a low thud is layered under each sword hit; gamepad rumble. Targets: bigger visual
+  push, knock-back dust, longer flinches (0.35–0.4 s), shake on armoured hits; a killing blow holds the
+  freeze longer. Being hit also kicks the camera and rumbles.
+- **Trail.** Only from just before contact to the end of the active frames, outer half of the blade, dimmer
+  (the old full-length ribbon from the windup turned the long blade into a white fan).
+- **Heavy hitbox** switches on when the sweep crosses the front (clip event), not at the release.
+
+## What needs a human
+- Whether Grounded is now the right amount of weight: turn rate, acceleration, roll length, attack tempo
+  and the dodge-cancel delay are all on F6 (Movement / Dodge / Attacks / Impact) for live tuning.
+- How the IK-driven sword swings read on screen at game zoom; the hit drag and camera kick strength.
+- The procedural clips are placeholders: real motion-captured / hand-animated clips can replace them
+  through ModelRig + AnimationMap, keeping the same timings.

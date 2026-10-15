@@ -132,3 +132,37 @@ Routine decisions taken autonomously while building the slice. Newest at the bot
   player's save and settings because several tests delete / write them.
 - **Default preset: Snappy.** Weighty also meets every target (heavier momentum, 2-frame crossfades, longer
   heavy hitstop); Old is only for comparison. The choice of default is left to a human playtest.
+
+## Weight pass (branch `weight-pass`, after the user played the snappy feel pass)
+The user found the snappy pass "too fast and too light" and asked for a body with real weight: momentum,
+commitment, recovery, grounded rolls and attacks, hits that land, a sword instead of the khopesh. The
+generic frame-0 targets of the first feel prompt are superseded; the new targets are per preset
+(`FeelProbe.TARGETS_BY_PRESET`), and the one rule kept from the first pass is that the body's *first
+reaction* to any input is immediate (pose change on the input frame) — weight comes from what follows.
+- **Grounded preset (new default):** run 5.4 m/s (0.9×), 90 % speed in ~0.28 s, stop in ~0.25 s; the
+  **heading model** turns the body at a capped, speed-dependent rate (620°/s standing → 330°/s at a run) and
+  moves where it faces, slowing while misaligned; a reversal at speed brakes (skid) before it pivots, so a
+  180° turn takes ~0.5 s. Lock-on strafing keeps the vector model with the same heavy rates.
+- **Attack timings are now the sword's natural timings in AttackData** (light windup 0.20–0.36 s,
+  recovery 0.42–0.62 s, heavy 0.55 s + charge 0.9 s); Snappy and Old replay them at `attack_tempo` 2.2 so the
+  comparison presets still exist. Damage per hit is higher (light 22, finisher 36, heavy 48) to keep fights
+  from dragging with the slower rhythm.
+- **Commitment without lost inputs:** dodge-cancel only after the follow-through (light: 0.46 s), no
+  hit-confirm cancel, no heavy windup cancel; but a dodge or attack pressed from mid-swing on is queued and
+  fires on the first legal frame, and the buffer is 0.25 s — committed, never ignored.
+- **Roll:** 0.62 s, push-off ramp (0.07 s) then a decaying burst over 4.2 m, i-frames 0.06–0.36 s,
+  get-up phase before anything else is accepted (attack 0.48 s, move 0.5 s).
+- **Impact:** light hitstop 5 ticks, finisher / heavy 8–9 (max 0.22 s); after the freeze the hero's swing
+  is dragged (time ×0.3 easing back over 0.09 s — the blade bites); the hero's body jolts back, the camera
+  is kicked along the blow (spring), a low thud is layered under every sword hit, gamepad rumble; targets get
+  a bigger visual push, knock-back dust and longer flinches (0.35–0.4 s); a killing blow holds the freeze
+  longer.
+- **Sword:** procedural bronze blade with a diamond section, gold guard and pommel (`SwordMesh`). The hero's
+  sword poses are authored as hilt position + blade direction + edge direction **in root space** and turned
+  into shoulder / elbow / wrist rotations by a 2-bone arm IK through the torso of each key, so swings follow
+  arcs driven by the hips and chest, and two-handed holds put the left hand on the grip. Blade arcs are
+  checked with `tests/visual/blade_trace.gd` (top and side plots). Jackal warriors keep their khopesh.
+- **Trail:** only from just before contact to the end of the active frames, outer half of the blade,
+  dimmer — the long blade made the old full-length, from-windup ribbon a white fan.
+- The stored preset key in the settings was renamed so a choice made during the snappy pass does not
+  override the new default.

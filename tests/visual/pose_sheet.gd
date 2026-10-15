@@ -1,7 +1,8 @@
 extends Node3D
 ## Visual check: renders a grid of rig copies, each frozen at a frame of a clip.
 ## godot res://tests/visual/pose_sheet.tscn -- --rig=hero --clips=idle,light_1 --cols=6 --out=/tmp/poses
-## Each clip gets one row with `cols` evenly spaced frames.
+## Each clip gets one row with `cols` evenly spaced frames. `clip@t` freezes every column
+## at time t; add `--views=-90,0,45,180` to turn the columns into camera angles (yaw).
 
 const RIGS := {
 	"hero": ["res://scripts/rigs/hero_rig.gd", "res://resources/animation/hero_anim_map.tres", ""],
@@ -18,6 +19,7 @@ var _frame: int = 0
 
 func _ready() -> void:
 	get_window().set_flag(Window.FLAG_NO_FOCUS, true)
+	get_window().set_disable_input(true)
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--") and a.contains("="):
 			var kv := a.substr(2).split("=", true, 1)
@@ -50,6 +52,7 @@ func _ready() -> void:
 	fm.albedo_color = Color(0.45, 0.4, 0.35)
 	floor_mi.material_override = fm
 	add_child(floor_mi)
+	var views := PackedFloat64Array(Array(String(_args.get("views", "")).split_floats(",", false)))
 	var rows := clips.size()
 	for r in rows:
 		var parts := clips[r].split("@")
@@ -59,7 +62,7 @@ func _ready() -> void:
 			rig.anim_map = load(RIGS[rig_key][1])
 			add_child(rig)
 			rig.position = Vector3((c - (cols - 1) * 0.5) * spacing, (float(rows - 1) * 0.5 - r) * 2.3, 0)
-			rig.rotation_degrees = Vector3(0, 180.0 + yaw, 0)
+			rig.rotation_degrees = Vector3(0, 180.0 + (views[c % views.size()] if not views.is_empty() else yaw), 0)
 			rig.build(table)
 			var ap := rig.get_animation_player()
 			if not ap.has_animation(clip):
@@ -68,7 +71,7 @@ func _ready() -> void:
 			var length := ap.get_animation(clip).length
 			var t := length * float(c) / float(maxi(cols - 1, 1))
 			if parts.size() > 1:
-				t = float(parts[1]) + float(c) * 0.03
+				t = float(parts[1]) + (0.0 if not views.is_empty() else float(c) * 0.03)
 			ap.play(clip)
 			ap.seek(t, true)
 			ap.pause()

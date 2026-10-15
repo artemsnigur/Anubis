@@ -18,6 +18,7 @@ var _dir: Vector3 = Vector3.FORWARD
 var _step: float = 0.0
 var _carry: float = 0.0
 var _queued: bool = false
+var _queued_dodge: bool = false
 var _hit: bool = false
 
 
@@ -33,15 +34,18 @@ func enter(msg: Dictionary) -> void:
 	_step = attack.lunge_distance * f.lunge_scale + float(aim["step"])
 	_carry = maxf(entry.dot(_dir), 0.0) * f.attack_entry_keep
 	player.face_instant(_dir)
+	player.anim_speed = f.attack_tempo
 	player.animator.play(attack.anim, true)
 	player.motion.anticipate(0.6 if index < 2 else 1.0)
 	player.alive.add_exertion(0.08)
 	phase = Phase.WINDUP
 	_queued = false
+	_queued_dodge = false
 	_hit = false
 
 
 func exit() -> void:
+	player.anim_speed = 1.0
 	player.hitbox.deactivate()
 	player.trail.emitting = false
 	player.set_smear(false)
@@ -86,12 +90,21 @@ func physics_update(dt: float) -> void:
 		_activate()
 	if phase == Phase.ACTIVE and t >= attack.windup + attack.active + 0.05:
 		_deactivate()
-	# Combo queue: from mid-active a press is kept until the chain point.
+	# Combo queue: from mid-active a press is kept until its window opens - the next
+	# attack at the chain point, a dodge at the dodge-cancel point (committed, not lost).
 	if f.combo_queue_from_active >= 0.0 and reached(attack.windup + attack.active * f.combo_queue_from_active):
 		if player.input.consume(&"attack_light"):
 			_queued = true
-	if accepts(&"dodge") and player.try_actions({"dodge": true}):
-		return
+			_queued_dodge = false
+		if not accepts(&"dodge") and player.input.consume(&"dodge"):
+			_queued_dodge = true
+			_queued = false
+	if accepts(&"dodge"):
+		if _queued_dodge:
+			player.input.push(&"dodge")
+			_queued_dodge = false
+		if player.try_actions({"dodge": true}):
+			return
 	var next := (index + 1) % player.stats.light_attacks.size()
 	if accepts(&"attack"):
 		if _queued and player.has_stamina():
@@ -107,16 +120,17 @@ func physics_update(dt: float) -> void:
 
 
 ## Momentum of the entry run (decaying) + ease-out lunge over [lunge_start * w, w + a].
+## State time runs at attack_tempo, so the lunge speed is scaled by it as well.
 func _move_body(t: float, dt: float) -> void:
 	var f := player.feel
-	var v := _dir * _carry * exp(-f.attack_entry_decay * t)
+	var v := _dir * _carry * exp(-f.attack_entry_decay * t / maxf(player.anim_speed, 0.01))
 	var t0 := attack.windup * f.lunge_start
 	var t1 := attack.windup + attack.active
 	if t >= t0 and t < t1 and _step > 0.0:
 		var span := t1 - t0
 		var u := (t - t0) / span
 		var p := maxf(f.lunge_ease, 1.0)
-		v += _dir * (_step * p * pow(1.0 - u, p - 1.0) / span)
+		v += _dir * (_step * p * pow(1.0 - u, p - 1.0) / span) * player.anim_speed
 		player.move_velocity = v
 	elif t < t0:
 		player.move_velocity = v
@@ -130,6 +144,7 @@ func on_anim_event(event: StringName, tag: StringName) -> void:
 	match event:
 		&"swing":
 			AudioManager.play_event(&"light_swing", player.global_position + Vector3.UP)
+		&"trail_on":
 			player.trail.emitting = true
 		&"hitbox_on":
 			_activate()

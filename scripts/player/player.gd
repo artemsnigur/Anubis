@@ -192,12 +192,20 @@ func grant_iframes(duration: float) -> void:
 
 # --- movement helpers ---------------------------------------------------------------
 
+## Run speed of the active preset.
+func run_speed() -> float:
+	return stats.run_speed * feel.run_speed_mult
+
+
 ## Camera-relative locomotion (FeelPreset "Movement"): separate acceleration,
 ## deceleration and reversal rates (exponential approach + linear floor, frame-rate
 ## independent), exponential turning, instant facing when starting from a standstill,
 ## and a fast pivot (with a skid) when the input reverses at speed.
 func locomote(dir: Vector3, max_speed: float, dt: float, allow_face: bool = true) -> void:
 	if dt <= 0.0:
+		return
+	if feel.heading_locomotion and allow_face and lock_on.target == null:
+		_locomote_heading(dir, max_speed, dt)
 		return
 	var f := feel
 	var target := dir * max_speed * speed_multiplier
@@ -210,16 +218,16 @@ func locomote(dir: Vector3, max_speed: float, dt: float, allow_face: bool = true
 	if reversing:
 		sharp = f.reverse_sharpness
 		linear = f.reverse_linear
-		if not _pivoting and speed > stats.run_speed * 0.55:
+		if not _pivoting and speed > run_speed() * 0.55:
 			_pivoting = true
-			_on_pivot(v / speed, speed / stats.run_speed)
+			_on_pivot(v / speed, speed / run_speed())
 	elif target.length() < speed - 0.001:
 		sharp = f.decel_sharpness
 		linear = f.decel_linear
 	var has_input := dir.length() > 0.1
 	if has_input and not _move_input_prev and speed < 0.5 and dir.length() > 0.8:
 		alive.run_start(dir.normalized())
-	elif not has_input and _move_input_prev and speed > stats.run_speed * 0.85:
+	elif not has_input and _move_input_prev and speed > run_speed() * 0.85:
 		alive.skid(0.45, v / speed)
 	_move_input_prev = has_input
 	if sharp > 0.0:
@@ -227,7 +235,7 @@ func locomote(dir: Vector3, max_speed: float, dt: float, allow_face: bool = true
 	move_velocity = v.move_toward(target, linear * dt)
 	if allow_face:
 		var t := lock_on.target
-		if t != null and move_velocity.length() < stats.run_speed * 0.6:
+		if t != null and move_velocity.length() < run_speed() * 0.6:
 			_turn_to(direction_to_node(t), f.turn_sharpness, dt)
 		elif dir.length() > 0.1:
 			if speed < f.snap_face_speed:
@@ -236,7 +244,57 @@ func locomote(dir: Vector3, max_speed: float, dt: float, allow_face: bool = true
 				_turn_to(dir, f.pivot_turn_sharpness if _pivoting else f.turn_sharpness, dt)
 	if _pivoting and (dir.length() < 0.1 or absf(angle_difference(rotation.y, yaw_for(dir))) < deg_to_rad(12.0)):
 		_pivoting = false
-	animator.set_locomotion(move_velocity.length(), stats.run_speed, f.speed_matched_locomotion)
+	animator.set_locomotion(move_velocity.length(), run_speed(), f.speed_matched_locomotion)
+
+
+## Heading model (weight): the body turns toward the input at a capped, speed-dependent
+## rate and moves where it faces, so it carves arcs instead of sliding sideways; speed
+## builds and bleeds off at the preset's rates and drops while the body is misaligned.
+## Reversing at speed brakes first (plant + skid), then pivots and pushes off again.
+func _locomote_heading(dir: Vector3, max_speed: float, dt: float) -> void:
+	var f := feel
+	var run := run_speed()
+	var speed := move_velocity.length()
+	var has_input := dir.length() > 0.1
+	var target_speed := 0.0
+	var braking := false
+	if has_input:
+		var want := dir.normalized()
+		var diff := angle_difference(rotation.y, yaw_for(want))
+		if absf(diff) > deg_to_rad(f.brake_turn_angle_deg) and speed > run * f.brake_speed_frac:
+			braking = true
+			if not _pivoting:
+				_pivoting = true
+				_on_pivot(forward(), speed / run)
+		else:
+			var rate := deg_to_rad(lerpf(f.turn_rate_slow_deg, f.turn_rate_run_deg, clampf(speed / run, 0.0, 1.0)))
+			var omega := clampf(diff * f.turn_sharpness, -rate, rate)
+			rotation.y += clampf(omega * dt, -absf(diff), absf(diff))
+			var align := maxf(cos(minf(absf(angle_difference(rotation.y, yaw_for(want))), PI * 0.5)), 0.0)
+			target_speed = dir.length() * max_speed * speed_multiplier * align
+			if absf(diff) < deg_to_rad(20.0):
+				_pivoting = false
+	else:
+		_pivoting = false
+	if has_input and not _move_input_prev and speed < 0.5 and dir.length() > 0.8:
+		alive.run_start(dir.normalized())
+	elif not has_input and _move_input_prev and speed > run * 0.85:
+		alive.skid(0.45, move_velocity / speed)
+	_move_input_prev = has_input
+	if braking:
+		speed = _approach(speed, 0.0, f.decel_sharpness, f.decel_linear * f.brake_mult, dt)
+	elif target_speed >= speed:
+		speed = _approach(speed, target_speed, f.accel_sharpness, f.accel_linear, dt)
+	else:
+		speed = _approach(speed, target_speed, f.decel_sharpness, f.decel_linear, dt)
+	move_velocity = forward() * speed
+	animator.set_locomotion(speed, run, f.speed_matched_locomotion)
+
+
+static func _approach(v: float, target: float, sharpness: float, linear: float, dt: float) -> float:
+	if sharpness > 0.0:
+		v = lerpf(v, target, 1.0 - exp(-sharpness * dt))
+	return move_toward(v, target, linear * dt)
 
 
 func _turn_to(dir: Vector3, sharpness: float, dt: float) -> void:
@@ -251,17 +309,13 @@ func _on_pivot(old_dir: Vector3, strength: float) -> void:
 	alive.skid(strength, old_dir)
 
 
-## Smear frames: on the fastest frames of a swing the blade is stretched along its arc
-## and the trail is brighter (FeelPreset.smear).
+## Smear: on the active frames of a swing the trail burns brighter (FeelPreset.smear).
 func set_smear(on: bool) -> void:
 	on = on and feel.smear
 	if on == _smear_on:
 		return
 	_smear_on = on
-	var blade := rig.get_socket(&"blade")
-	if blade != rig:
-		blade.scale = Vector3(1.0, 1.35, 1.6) if on else Vector3.ONE
-	trail.set_intensity(trail.intensity * (1.6 if on else 1.0 / 1.6))
+	trail.set_intensity(trail.intensity * (1.25 if on else 1.0 / 1.25))
 
 
 ## Disables collisions with enemy bodies (dodging through swarms) - both ways: the
@@ -442,6 +496,11 @@ func _on_hit_received(hit: HitInfo) -> void:
 	Vfx.hit_sparks(p, hit.direction, hit.is_heavy)
 	AudioManager.play_event(&"player_hurt", p)
 	CameraShake.add_trauma(balance.shake_on_player_hurt + (0.2 if hit.is_heavy else 0.0))
+	# Taking a blow lands too: the view is shoved along it and the pad rumbles.
+	if feel.camera_kick > 0.0 and game_camera != null:
+		game_camera.kick(hit.direction, feel.camera_kick * (1.4 if hit.is_heavy else 0.9))
+	if feel.rumble and input.using_gamepad:
+		Input.start_joy_vibration(0, 0.6 if hit.is_heavy else 0.35, 1.0 if hit.is_heavy else 0.6, hit.hitstop + 0.12)
 
 
 func _react_to_hit(hit: HitInfo) -> void:
@@ -468,13 +527,36 @@ func _on_hit_landed(target: Node3D, hit: HitInfo) -> void:
 	if fsm.current != null and fsm.current.has_method(&"on_hit_confirmed"):
 		fsm.current.call(&"on_hit_confirmed")
 	var amount := hit.shake * (1.4 if hit.is_heavy else 1.0) * feel.shake_mult
-	# One shake per physics frame, even when a swing hits several enemies.
+	var heavy := hit.is_heavy or hit.hitstop >= 0.12
+	# One impact per physics frame, even when a swing hits several enemies.
 	if Engine.get_physics_frames() != _last_shake_frame:
 		_last_shake_frame = Engine.get_physics_frames()
 		CameraShake.add_trauma(amount)
+		_impact(hit, heavy)
 	if target is Combatant:
 		var c := target as Combatant
 		c.motion.stretch_impulse(-0.12)
+		if hit.killed and not hit.is_projectile:
+			# Killing blow: hold the freeze a little longer on the hero.
+			apply_hitstop(hitstop_left + 0.05)
+
+
+## What the hero feels when the blade connects (FeelPreset "Impact"): the swing is
+## dragged for a moment after the freeze, the body jolts back, the camera is kicked
+## along the blow and a gamepad rumbles.
+func _impact(hit: HitInfo, heavy: bool) -> void:
+	if hit.is_projectile:
+		return
+	var f := feel
+	if f.hit_drag_time > 0.0:
+		apply_hit_drag(f.hit_drag_time * (1.4 if heavy else 1.0), f.hit_drag_factor)
+	if f.attacker_recoil > 0.0:
+		motion.recoil(-hit.direction, f.attacker_recoil * (1.5 if heavy else 1.0))
+	if f.camera_kick > 0.0 and game_camera != null:
+		game_camera.kick(hit.direction, f.camera_kick * (1.6 if heavy else 1.0))
+	if f.rumble and input.using_gamepad:
+		var stop := hit.hitstop + 0.06
+		Input.start_joy_vibration(0, 0.45 if heavy else 0.25, 0.9 if heavy else 0.5, stop)
 
 
 func _footstep(side: StringName) -> void:
@@ -491,7 +573,9 @@ func _footstep(side: StringName) -> void:
 	AudioManager.play_event(ev, global_position)
 	var speed := move_velocity.length()
 	if feel.footstep_dust and side != &"" and speed > 2.5:
-		Vfx.dust(foot_position(side), 2, 0.45 + 0.25 * clampf(speed / stats.run_speed, 0.0, 1.0))
+		Vfx.dust(foot_position(side), 2, 0.45 + 0.25 * clampf(speed / run_speed(), 0.0, 1.0))
+		# Footfall: a little weight lands on each step.
+		motion.land_squash(0.06 * feel.squash * clampf(speed / run_speed(), 0.0, 1.0))
 	elif not feel.footstep_dust and speed > 4.0 and _step_toggle:
 		Vfx.dust(global_position, 3, 0.7)
 

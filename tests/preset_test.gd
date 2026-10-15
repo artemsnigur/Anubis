@@ -1,5 +1,5 @@
 extends Node
-## F6 / F7 feel presets: F7 (a real key event) cycles Old -> Snappy -> Weighty and the hero
+## F6 / F7 feel presets: F7 (a real key event) cycles Grounded -> Snappy -> Old and the hero
 ## picks up each preset (crossfades, camera, movement numbers); F6 opens the tuning panel
 ## and editing a value there changes the live preset. Restores the user's saved preset.
 ## godot --headless res://tests/preset_test.tscn
@@ -76,7 +76,7 @@ func _run() -> void:
 		_check(FeelProbe.xfade_frames(&"locomotion", &"light_1") == roundi(f.combat_xfade * 60.0), "%s: combat crossfade %d f" % [f.display_name, roundi(f.combat_xfade * 60.0)])
 		_check(Settings.feel_preset == String(f.id), "%s: choice stored in the settings" % f.display_name)
 	_check(seen.size() == 3, "F7 visits all three presets (%s)" % str(seen.keys()))
-	_check(int(seen.get(&"snappy", -1)) < int(seen.get(&"weighty", -1)), "Snappy reaches top speed sooner than Weighty (%s)" % str(seen))
+	_check(int(seen.get(&"snappy", -1)) < int(seen.get(&"grounded", -1)), "Snappy reaches top speed sooner than Grounded (%s)" % str(seen))
 	# F6 tuning panel: open it, edit camera_follow through its SpinBox.
 	await _key(KEY_F6)
 	var panel := DebugOverlay.get("_tuning") as TuningPanel

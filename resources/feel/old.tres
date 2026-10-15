@@ -58,3 +58,4 @@ secondary_motion = 0.0
 look_at = 0.0
 breathing = 0.0
 smear = false
+attack_tempo = 2.2

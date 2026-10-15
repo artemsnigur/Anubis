@@ -56,12 +56,18 @@ func _run() -> void:
 	get_tree().change_scene_to_file("res://scenes/ui/title_menu.tscn")
 	await _wait(1.5)
 	get_tree().current_scene.call(&"_on_continue")
-	await _wait(3.0)
-	lv = get_tree().current_scene as Level
+	# Poll instead of a fixed wait: under load the fade + scene load can take longer.
+	lv = null
+	for i in 80:
+		await _wait(0.1)
+		lv = get_tree().current_scene as Level
+		if lv != null and lv.scene_file_path == "res://scenes/levels/necropolis.tscn" and lv.player != null and lv.is_node_ready():
+			break
 	_check(lv != null and lv.scene_file_path == "res://scenes/levels/necropolis.tscn", "Continue loads the Necropolis")
 	if lv != null:
 		var altar := lv.altars[&"judgement"] as Altar
-		_check(lv.player.global_position.distance_to(altar.spawn_point()) < 1.5, "Continue places the player at the saved altar")
+		var d := lv.player.global_position.distance_to(altar.spawn_point())
+		_check(d < 1.5, "Continue places the player at the saved altar (%.1f m away)" % d)
 	# Training Arena: sandbox, the real save stays untouched.
 	var before := FileAccess.get_file_as_string(SaveSystem.SAVE_PATH)
 	get_tree().change_scene_to_file("res://scenes/ui/title_menu.tscn")

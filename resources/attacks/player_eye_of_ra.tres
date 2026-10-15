@@ -6,10 +6,10 @@
 script = ExtResource("1_ltlji")
 id = &"eye_of_ra"
 anim = &"cast"
-windup = 0.18
-active = 0.05
-recovery = 0.3
-cancel_delay = 0.1
+windup = 0.3
+active = 0.06
+recovery = 0.42
+cancel_delay = 0.18
 damage = 38.0
 poise_damage = 25.0
 knockback = 4.0

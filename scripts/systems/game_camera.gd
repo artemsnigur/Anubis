@@ -38,6 +38,8 @@ var _look_ahead: Vector3 = Vector3.ZERO
 var _noise := FastNoiseLite.new()
 var _noise_t: float = 0.0
 var _listener: AudioListener3D
+var _kick: Vector3 = Vector3.ZERO
+var _kick_vel: Vector3 = Vector3.ZERO
 
 
 func _ready() -> void:
@@ -84,6 +86,15 @@ func add_trauma(amount: float) -> void:
 	trauma = clampf(trauma + amount, 0.0, 1.0)
 
 
+## Impact kick: shoves the view along `dir` (world) by up to `amount` metres; a stiff
+## spring brings it back within a few frames.
+func kick(dir: Vector3, amount: float) -> void:
+	var d := Vector3(dir.x, 0.0, dir.z)
+	if d.length_squared() < 0.0001:
+		return
+	_kick_vel += d.normalized() * amount * 24.0 * Settings.shake_strength
+
+
 func get_focus_position() -> Vector3:
 	return _focus
 
@@ -116,12 +127,15 @@ func _process(delta: float) -> void:
 		_focus = _focus.lerp(tpos + _look_ahead, 1.0 - exp(-follow * delta))
 	_zoom_current = lerpf(_zoom_current, zoom, 1.0 - exp(-zoom_damping * delta))
 	trauma = maxf(trauma - trauma_decay * delta, 0.0)
+	var kdt := minf(delta, 0.05)
+	_kick_vel += (-_kick * 320.0 - _kick_vel * 22.0) * kdt
+	_kick += _kick_vel * kdt
 	_noise_t += delta * noise_speed
 	_update_transform(delta)
 
 
 func _update_transform(_delta: float) -> void:
-	global_position = _focus
+	global_position = _focus + _kick
 	rotation = Vector3(0.0, deg_to_rad(yaw_deg), 0.0)
 	var pitch := deg_to_rad(pitch_deg)
 	var d := distance * _zoom_current

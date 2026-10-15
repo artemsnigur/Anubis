@@ -19,6 +19,8 @@ var _carry: float = 0.0
 var _release_t: float = 0.0
 var _full_flashed: bool = false
 var _hit: bool = false
+var _hit_on: bool = false
+var _damage_mult: float = 1.0
 
 
 func enter(_msg: Dictionary) -> void:
@@ -27,6 +29,7 @@ func enter(_msg: Dictionary) -> void:
 	_dir = player.attack_aim()["dir"]
 	_carry = maxf(player.move_velocity.dot(_dir), 0.0) * player.feel.attack_entry_keep
 	player.face_instant(_dir)
+	player.anim_speed = player.feel.attack_tempo
 	player.animator.play(&"heavy_windup", true)
 	player.motion.anticipate(1.2)
 	player.alive.add_exertion(0.15)
@@ -37,10 +40,11 @@ func enter(_msg: Dictionary) -> void:
 
 
 func exit() -> void:
+	player.anim_speed = 1.0
 	player.set_smear(false)
 	player.hitbox.deactivate()
 	player.trail.emitting = false
-	player.trail.set_intensity(3.2)
+	player.trail.set_intensity(1.3)
 
 
 ## Hyper armour from the end of the windup to the end of the active frames.
@@ -117,10 +121,13 @@ func physics_update(dt: float) -> void:
 			if since < span and _step > 0.0:
 				var u := clampf(since / span, 0.0, 1.0)
 				var p := maxf(f.lunge_ease, 1.0)
-				player.move_velocity = _dir * (_step * p * pow(1.0 - u, p - 1.0) / span)
+				player.move_velocity = _dir * (_step * p * pow(1.0 - u, p - 1.0) / span) * player.anim_speed
 			else:
 				player.move_velocity = player.move_velocity.move_toward(Vector3.ZERO, 50.0 * dt)
-			if phase == Phase.ACTIVE and since >= span + 0.05:
+			# Time fallback for the clip's hitbox_on / hitbox_off events.
+			if phase == Phase.ACTIVE and not _hit_on and since >= PRE + attack.active * 0.35 + 0.05:
+				_activate()
+			if phase == Phase.ACTIVE and since >= span + 0.07:
 				_deactivate()
 			if phase == Phase.RECOVERY or _hit:
 				if accepts(&"dodge") and player.try_actions({"dodge": true}):
@@ -153,8 +160,9 @@ func _release() -> void:
 	player.motion.stretch_impulse(0.2)
 	var k := clampf(charge / maxf(player.stats.heavy_max_charge, 0.01), 0.0, 1.0)
 	player.set_meta(&"heavy_charge_k", k)
-	player.trail.set_intensity(3.2 + k * 3.0)
-	player.hitbox.activate(attack, player.melee_multiplier() * lerpf(1.0, player.stats.heavy_charge_damage_mult, k))
+	player.trail.set_intensity(1.3 + k * 1.4)
+	_damage_mult = player.melee_multiplier() * lerpf(1.0, player.stats.heavy_charge_damage_mult, k)
+	_hit_on = false
 	player.trail.emitting = true
 	player.set_smear(true)
 	AudioManager.play_event(&"heavy_swing", player.global_position + Vector3.UP)
@@ -170,5 +178,16 @@ func _deactivate() -> void:
 
 
 func on_anim_event(event: StringName, tag: StringName) -> void:
-	if tag == &"heavy_release" and event == &"hitbox_off":
+	if tag != &"heavy_release":
+		return
+	if event == &"hitbox_on":
+		_activate()
+	elif event == &"hitbox_off":
 		_deactivate()
+
+
+func _activate() -> void:
+	if phase != Phase.ACTIVE or _hit_on:
+		return
+	_hit_on = true
+	player.hitbox.activate(attack, _damage_mult)

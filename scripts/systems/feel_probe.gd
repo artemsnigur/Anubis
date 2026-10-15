@@ -17,11 +17,21 @@ const LOCK_KINDS: Array[StringName] = [&"move", &"attack", &"dodge"]
 const TIMEOUT_FRAMES := 90
 const SHORT := {"attack_light": "light", "attack_heavy": "heavy", "dodge": "dodge", "heal": "heal", "ranged": "cast"}
 
-## Targets of the feel pass, in frames: key -> [min, max]. Used for colouring and by tests/feel_test.
-const TARGETS := {
-	"move_vel": [0, 0], "move_pose": [0, 1], "move_t90": [5, 7], "stop": [4, 6], "turn": [0, 6],
-	"attack_light_pose": [0, 0], "attack_light_active": [6, 8], "dodge_move": [0, 0], "dodge_iframe": [0, 2],
-	"xfade_combat": [0, 3], "xfade_loco": [0, 6], "lock_Attack_dodge": [0, 12],
+## Targets in frames per preset: key -> [min, max]. Used for colouring and by tests/feel_test.
+## Snappy: the first feel pass (everything as fast as possible). Grounded: the current
+## direction - the body reacts at once, but builds momentum, commits and recovers.
+const TARGETS_BY_PRESET := {
+	&"snappy": {
+		"move_vel": [0, 0], "move_pose": [0, 1], "move_t90": [5, 7], "stop": [4, 6], "turn": [0, 6],
+		"attack_light_pose": [0, 0], "attack_light_active": [6, 8], "dodge_move": [0, 0], "dodge_iframe": [0, 2],
+		"xfade_combat": [0, 3], "xfade_loco": [0, 6], "lock_Attack_dodge": [0, 12], "light_dodge_cancel": [0, 12],
+	},
+	&"grounded": {
+		"move_vel": [0, 1], "move_pose": [0, 1], "move_t90": [15, 27], "stop": [11, 21], "turn": [18, 40],
+		"attack_light_pose": [0, 0], "attack_light_active": [13, 17], "dodge_move": [0, 3], "dodge_iframe": [3, 5],
+		"xfade_combat": [0, 4], "xfade_loco": [0, 10], "lock_Attack_dodge": [24, 30], "light_dodge_cancel": [24, 30],
+		"hitstop_player": [5, 6], "hitstop_target": [5, 6],
+	},
 }
 
 var log_enabled: bool = false
@@ -92,7 +102,7 @@ func _physics_process(_delta: float) -> void:
 	var was := _prev_move.length() > 0.1
 	var dir := _player.input.screen_to_world(m).normalized() if moving else Vector3.ZERO
 	var speed: float = _snap["speed"]
-	var run := _player.stats.run_speed
+	var run := _run_speed()
 	if moving and not was:
 		if _last_dir != Vector3.ZERO and f - _last_dir_frame <= 8 and dir.dot(_last_dir) < -0.7 and speed > 0.5 * run:
 			# Keyboard reversal (A -> D usually has a gap frame with no key down).
@@ -144,6 +154,12 @@ func _blend() -> float:
 	if _player.animator.has_method(&"get_locomotion_blend"):
 		return float(_player.animator.call(&"get_locomotion_blend"))
 	return float(_player.animator.tree.get(&"parameters/locomotion/blend_position"))
+
+
+func _run_speed() -> float:
+	if _player.has_method(&"run_speed"):
+		return float(_player.call(&"run_speed"))
+	return _player.stats.run_speed
 
 
 func _frozen(c: Combatant) -> bool:
@@ -209,7 +225,7 @@ func _update(p: Dictionary, s: Dictionary, f: int) -> bool:
 	var k: StringName = p["kind"]
 	var dt: int = f - int(p["f"])
 	var found: Dictionary = p["found"]
-	var run := _player.stats.run_speed
+	var run := _run_speed()
 	var speed: float = s["speed"]
 	match k:
 		&"move":
@@ -397,11 +413,19 @@ func _track_lockout(s: Dictionary, f: int) -> void:
 
 # --- overlay ------------------------------------------------------------------------------
 
+## Targets of the active preset (empty for presets without targets, e.g. Old).
+func targets() -> Dictionary:
+	var f: Variant = GameState.get(&"feel")
+	var id: StringName = (f as Resource).get(&"id") if f != null else &"snappy"
+	return TARGETS_BY_PRESET.get(id, {})
+
+
 func target_ok(key: String, frames: int) -> int:
 	## 1 = inside the target, 0 = outside, -1 = no target for this key.
-	if not TARGETS.has(key):
+	var t := targets()
+	if not t.has(key):
 		return -1
-	var r: Array = TARGETS[key]
+	var r: Array = t[key]
 	return 1 if frames >= int(r[0]) and frames <= int(r[1]) else 0
 
 
