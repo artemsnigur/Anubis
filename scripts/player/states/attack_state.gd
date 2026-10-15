@@ -31,8 +31,10 @@ func enter(msg: Dictionary) -> void:
 	var entry := player.move_velocity
 	var aim := player.attack_aim()
 	_dir = aim["dir"]
-	_step = attack.lunge_distance * f.lunge_scale + float(aim["step"])
+	_step = minf(attack.lunge_distance * f.lunge_scale + float(aim["step"]), float(aim["max_step"]))
 	_carry = maxf(entry.dot(_dir), 0.0) * f.attack_entry_keep
+	if float(aim["max_step"]) < INF:
+		_carry = minf(_carry, maxf(float(aim["max_step"]) - _step, 0.0) * f.attack_entry_decay)
 	player.face_instant(_dir)
 	player.anim_speed = f.attack_tempo
 	player.animator.play(attack.anim, true)

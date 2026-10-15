@@ -152,8 +152,8 @@ func _release() -> void:
 	var aim := player.attack_aim()
 	_dir = (aim["dir"] as Vector3).lerp(player.forward(), 0.3).normalized()
 	player.face_instant(_dir)
-	_step = attack.lunge_distance * player.feel.lunge_scale + float(aim["step"]) \
-		+ (_carry / maxf(player.feel.attack_entry_decay, 0.1) if charge <= 0.0 else 0.0)
+	_step = minf(attack.lunge_distance * player.feel.lunge_scale + float(aim["step"]) \
+		+ (_carry / maxf(player.feel.attack_entry_decay, 0.1) if charge <= 0.0 else 0.0), float(aim["max_step"]))
 	phase = Phase.ACTIVE
 	_release_t = time_in_state
 	player.animator.play(&"heavy_release", true)

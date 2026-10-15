@@ -353,11 +353,12 @@ func raw_aim_direction() -> Vector3:
 
 
 ## Attack direction with soft aim assist: rotates toward the closest enemy inside
-## the assist cone and returns the extra step distance toward it.
-## Returns {"dir": Vector3, "step": float, "target": Node3D}
+## the assist cone and returns the extra step distance toward it, plus the most the
+## swing may travel before the body would crowd the target ("max_step").
+## Returns {"dir": Vector3, "step": float, "target": Node3D, "max_step": float}
 func attack_aim(max_range: float = -1.0) -> Dictionary:
 	var dir := raw_aim_direction()
-	var result := {"dir": dir, "step": 0.0, "target": null}
+	var result := {"dir": dir, "step": 0.0, "target": null, "max_step": INF}
 	if not balance.aim_assist_enabled:
 		return result
 	var rng := balance.aim_assist_range if max_range < 0.0 else max_range
@@ -394,6 +395,8 @@ func attack_aim(max_range: float = -1.0) -> Dictionary:
 		var stop := balance.aim_assist_stop_distance + best.body_radius
 		result["step"] = clampf(dist - stop, 0.0, balance.aim_assist_step)
 		result["target"] = best
+		# Step into the blow, but stop at sword's reach instead of walking into the target.
+		result["max_step"] = maxf(dist - stop, 0.15)
 	return result
 
 
