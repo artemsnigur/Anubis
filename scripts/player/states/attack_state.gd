@@ -35,6 +35,7 @@ func enter(msg: Dictionary) -> void:
 	player.face_instant(_dir)
 	player.animator.play(attack.anim, true)
 	player.motion.anticipate(0.6 if index < 2 else 1.0)
+	player.alive.add_exertion(0.08)
 	phase = Phase.WINDUP
 	_queued = false
 	_hit = false
@@ -43,6 +44,7 @@ func enter(msg: Dictionary) -> void:
 func exit() -> void:
 	player.hitbox.deactivate()
 	player.trail.emitting = false
+	player.set_smear(false)
 
 
 func accepts(kind: StringName) -> bool:
@@ -140,6 +142,7 @@ func _activate() -> void:
 		return
 	phase = Phase.ACTIVE
 	player.trail.emitting = true
+	player.set_smear(true)
 	player.hitbox.activate(attack, player.melee_multiplier())
 
 
@@ -148,6 +151,7 @@ func _deactivate() -> void:
 		return
 	phase = Phase.RECOVERY
 	player.hitbox.deactivate()
+	player.set_smear(false)
 	get_tree().create_timer(0.05, false).timeout.connect(func() -> void:
 		if not player.fsm.is_in(&"Attack") or phase == Phase.RECOVERY:
 			player.trail.emitting = false)

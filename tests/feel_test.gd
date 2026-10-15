@@ -28,13 +28,15 @@ func _ready() -> void:
 		print("feel_test: TIMEOUT")
 		get_tree().quit(2))
 	_strict = not OS.get_cmdline_user_args().has("--measure-only")
-	# Feel preset under test (default: the shipped default), never persisted.
-	var preset := GameState.DEFAULT_FEEL
-	for a: String in OS.get_cmdline_user_args():
-		if a.begins_with("--preset="):
-			preset = StringName(a.substr(9))
-	GameState.set_feel_preset(preset, false)
-	print("feel_test: preset ", GameState.feel.display_name)
+	# Feel preset under test (default: the shipped default), never persisted. The harness
+	# also runs on the pre-feel-pass commit (no presets) for the "Before" table.
+	if GameState.has_method(&"set_feel_preset"):
+		var preset: StringName = GameState.get(&"DEFAULT_FEEL")
+		for a: String in OS.get_cmdline_user_args():
+			if a.begins_with("--preset="):
+				preset = StringName(a.substr(9))
+		GameState.call(&"set_feel_preset", preset, false)
+		print("feel_test: preset ", _feel(&"display_name", ""))
 	arena = (load("res://scenes/levels/test_arena.tscn") as PackedScene).instantiate() as Level
 	arena.set("spawn_dummies", false)
 	add_child(arena)
@@ -150,6 +152,12 @@ func _check(cond: bool, msg: String) -> void:
 		print("FAIL ", msg)
 
 
+## A value of the active FeelPreset (or `fallback` on code without presets).
+func _feel(key: StringName, fallback: Variant) -> Variant:
+	var f: Variant = GameState.get(&"feel")
+	return (f as Resource).get(key) if f != null else fallback
+
+
 ## Frame (0 = input frame) on which a window opening at state time `t` is first open:
 ## the state's first update runs in the input tick with time = 1 tick.
 func _open_frame(t: float) -> int:
@@ -204,13 +212,19 @@ func _run() -> void:
 	_row("Input → first visible pose change", _r("move_pose"), "≤ 1 f", 0, 1)
 	_row("Idle → 90 % of top speed", _r("move_t90"), "0.08–0.12 s (5–7 f)", 5, 7, true)
 	await _input_late(func() -> void: Input.action_release(&"move_right"))
+	# Camera after the stop: first frame from which it stays still (< 0.1 m/s) for 10 frames.
 	var settle := -1
+	var still := 0
 	var last_focus := cam.get_focus_position()
 	for i in 120:
 		await get_tree().physics_frame
 		var fp := cam.get_focus_position()
-		if settle < 0 and i > 2 and fp.distance_to(last_focus) * 60.0 < 0.1:
-			settle = i + 1
+		if fp.distance_to(last_focus) * 60.0 < 0.1:
+			still += 1
+			if still >= 10 and settle < 0:
+				settle = i + 1 - 9
+		else:
+			still = 0
 		last_focus = fp
 	_row("Top speed → full stop", _r("stop"), "0.06–0.10 s (4–6 f)", 4, 6, true)
 	await _reset(Vector3(-6, 0.1, 9))
@@ -226,7 +240,7 @@ func _run() -> void:
 	await _release_all()
 	_info("Camera: input → camera starts moving", "%d f" % cam_moved)
 	_info("Camera: lag behind its target (hero + look-ahead) at full run", "%.2f m" % max_off)
-	_info("Camera: keeps moving after the hero stopped for", "%d f (%d ms)" % [settle, roundi(settle * 1000.0 / 60.0)])
+	_info("Camera: comes to rest after the hero stops (still for 10 f)", "%d f (%d ms)" % [settle, roundi(settle * 1000.0 / 60.0)])
 	var avg := 0.0
 	for v in slide:
 		avg += v
@@ -257,11 +271,10 @@ func _run() -> void:
 	move_at = move_at - f0 if move_at >= 0 else -1
 	_info("Light: input → movement accepted (move held)", "%d f" % move_at)
 	var l1: AttackData = player.stats.light_attacks[0]
-	var preset := GameState.feel
 	if _strict:
 		_row("  ↳ dodge window opens on its frame (w+a+cancel_delay)", light_dodge, "= %d f" % _open_frame(l1.windup + l1.active + l1.cancel_delay), _open_frame(l1.windup + l1.active + l1.cancel_delay), _open_frame(l1.windup + l1.active + l1.cancel_delay))
 		_row("  ↳ chain window opens on its frame (w+a+chain_delay)", light_chain, "= %d f" % _open_frame(l1.windup + l1.active + l1.chain_delay), _open_frame(l1.windup + l1.active + l1.chain_delay), _open_frame(l1.windup + l1.active + l1.chain_delay))
-		var mv := _open_frame(l1.windup + l1.active + l1.recovery * preset.walk_out_recovery)
+		var mv := _open_frame(l1.windup + l1.active + l1.recovery * float(_feel(&"walk_out_recovery", 0.7)))
 		_row("  ↳ walk-out window opens on its frame", move_at, "= %d f" % mv, mv, mv)
 	# One buffered dodge press, 6 frames before the window: must fire on the first legal frame.
 	await _reset()
@@ -286,6 +299,16 @@ func _run() -> void:
 		starts.append("%d" % (int(e[0]) - f0))
 	_info("Light chain rhythm: hit 1 / 2 / 3 start at frame", " / ".join(starts))
 
+	# One attack press early in the swing (2nd frame of the windup) must still chain.
+	await _reset()
+	f0 = await _press(&"attack_light")
+	await _frames(1)
+	await _press(&"attack_light")
+	await _frames(40)
+	var early := _first_entry(&"Attack", f0, 2)
+	_check(early >= 0, "Attack pressed once early in the windup chains into hit 2")
+	_info("  ↳ hit 2 starts at frame", "%d f" % (early - f0 if early >= 0 else -1))
+
 	# Heavy (tap).
 	await _reset()
 	f0 = await _press(&"attack_heavy")
@@ -306,13 +329,13 @@ func _run() -> void:
 	var expect_len := 0
 	for k in 60:
 		var t := (k + 1) / 60.0
-		if t >= GameState.feel.iframe_start - 0.0001 and t < GameState.feel.iframe_end - 0.0001:
+		if t >= float(_feel(&"iframe_start", 0.05)) - 0.0001 and t < float(_feel(&"iframe_end", 0.25)) - 0.0001:
 			expect_len += 1
 	_row("Dodge: i-frame window length", _r("dodge_iframe_len"), "= %d f (preset)" % expect_len, expect_len if _strict else -1, expect_len)
 	await _reset()
 	f0 = await _press(&"dodge")
 	var att := await _mash_until(&"attack_light", &"Attack", f0, 50)
-	var exp_att := _open_frame(GameState.feel.dodge_attack_cancel)
+	var exp_att := _open_frame(float(_feel(&"dodge_attack_cancel", 0.25)))
 	_row("Dodge: input → attack accepted (attack mashed)", att - f0 if att >= 0 else -1, "= %d f (preset)" % exp_att, exp_att if _strict else -1, exp_att)
 	await _reset()
 	f0 = await _press(&"dodge")
@@ -320,7 +343,7 @@ func _run() -> void:
 	await _frames(60)
 	move_at = _first_entry(&"Move", f0)
 	move_at = move_at - f0 if move_at >= 0 else -1
-	var exp_mv := _open_frame(GameState.feel.dodge_move_cancel)
+	var exp_mv := _open_frame(float(_feel(&"dodge_move_cancel", 0.35)))
 	_row("Dodge: input → movement accepted (move held)", move_at, "= %d f (preset)" % exp_mv, exp_mv if _strict else -1, exp_mv)
 
 	# Crossfades (AnimationTree transition times).
@@ -364,10 +387,11 @@ func _run() -> void:
 			hs_press = await _press(&"attack_light")
 			break
 	await _frames(50)
-	var second := _first_entry(&"Attack", f0 + 1)
+	var second := _first_entry(&"Attack", f0, 2)
 	_check(hs_press >= 0 and second >= 0, "Attack pressed once during hitstop chains into the next hit")
 	_info("  ↳ attack press (in hitstop) → next hit starts", "%d f" % (second - hs_press if second >= 0 and hs_press >= 0 else -1))
 
+	await _alive_checks()
 	_info("Physics interpolation", str(ProjectSettings.get_setting("physics/common/physics_interpolation")))
 	_info("Physics ticks per second", str(Engine.physics_ticks_per_second))
 	var header := "| Metric | Measured | Target | |\n|---|---|---|---|"
@@ -403,3 +427,44 @@ func _face_dummy() -> void:
 	FeelProbe.results.clear()
 	_entries.clear()
 	_attack_index.clear()
+
+
+## Procedural "alive" layers (only meaningful when the preset enables them).
+func _alive_checks() -> void:
+	var rig := player.rig as PlaceholderRig
+	if rig == null or float(_feel(&"secondary_motion", 0.0)) <= 0.0 or not player.has_signal(&"footstep_side"):
+		_info("Alive layers", "off in this preset")
+		return
+	dummy.teleport_to(Vector3(30, 0, 30), 0.0)
+	await _reset(Vector3(-6, 0.1, 9))
+	var flap := rig.bones["KiltFlap"] as Node3D
+	var rest := flap.basis
+	var steps: Array = []
+	player.connect(&"footstep_side", func(side: StringName) -> void: steps.append(side))
+	await _hold(&"move_right")
+	var max_swing := 0.0
+	for i in 60:
+		await get_tree().physics_frame
+		max_swing = maxf(max_swing, rad_to_deg(flap.basis.get_rotation_quaternion().angle_to(rest.get_rotation_quaternion())))
+	await _release_all()
+	await _frames(150)
+	var settle := rad_to_deg(flap.basis.get_rotation_quaternion().angle_to(rest.get_rotation_quaternion()))
+	_check(max_swing > 8.0 and settle < 3.0, "Secondary motion: kilt panel swings at a run (%.0f°) and settles at rest (%.1f°)" % [max_swing, settle])
+	_check(steps.has(&"r") and steps.has(&"l"), "Footstep events report the planted foot (%d steps)" % steps.size())
+	# Additive layers must not accumulate while the animation is frozen by hitstop.
+	var chest := rig.bones["Chest"] as Node3D
+	player.apply_hitstop(1.0)
+	await _frames(2)
+	var q0 := chest.quaternion
+	await _frames(50)
+	var drift := rad_to_deg(chest.quaternion.angle_to(q0))
+	player.hitstop_left = 0.0
+	_check(drift < 1.0, "No additive drift during a 1 s freeze (%.2f°)" % drift)
+	# Look-at: an enemy to the hero's right turns the head toward it.
+	dummy.teleport_to(player.global_position + player.global_basis.x * 3.0, 0.0)
+	await _frames(40)
+	var head := rig.bones["Head"] as Node3D
+	var fwd := -head.global_basis.z
+	var to := dummy.global_position - player.global_position
+	var turned := rad_to_deg(Vector2(fwd.x, fwd.z).angle_to(Vector2(-player.global_basis.z.x, -player.global_basis.z.z)))
+	_check(absf(turned) > 15.0 and fwd.dot(to) > (-player.global_basis.z).dot(to), "Head turns toward a nearby enemy (%.0f°)" % absf(turned))

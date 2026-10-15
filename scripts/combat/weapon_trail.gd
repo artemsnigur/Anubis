@@ -18,6 +18,8 @@ var _samples: Array = []   # [time, base, tip]
 var _time: float = 0.0
 var _imesh: ImmediateMesh
 var _mat: ShaderMaterial
+## Current brightness of the ribbon (HDR, so it blooms).
+var intensity: float = 3.2
 
 
 func _ready() -> void:
@@ -30,7 +32,7 @@ func _ready() -> void:
 	_mat.shader = SHADER
 	_mat.set_shader_parameter(&"core_color", core_color)
 	_mat.set_shader_parameter(&"edge_color", edge_color)
-	_mat.set_shader_parameter(&"intensity", 3.2)
+	_mat.set_shader_parameter(&"intensity", intensity)
 	material_override = _mat
 	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 
@@ -41,6 +43,7 @@ func setup(p_base: Node3D, p_tip: Node3D) -> void:
 
 
 func set_intensity(value: float) -> void:
+	intensity = value
 	_mat.set_shader_parameter(&"intensity", value)
 
 

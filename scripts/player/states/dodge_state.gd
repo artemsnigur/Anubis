@@ -12,6 +12,7 @@ var _speed: float = 0.0
 func enter(_msg: Dictionary) -> void:
 	var f := player.feel
 	player.spend_stamina(player.stats.dodge_stamina)
+	player.alive.add_exertion(0.12)
 	var m := player.input.move_world()
 	_dir = m.normalized() if m.length() > 0.2 else player.forward()
 	player.face_instant(_dir)

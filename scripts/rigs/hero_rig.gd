@@ -24,7 +24,17 @@ func _build_body() -> void:
 	part("Hips", box(Vector3(0.34, 0.18, 0.22)), faience)
 	part("Hips", cylinder(0.2, 0.28, 0.34), kilt, Vector3(0, -0.12, 0))
 	part("Hips", torus(0.19, 0.23), gold, Vector3(0, 0.04, 0), Vector3.ZERO, Vector3(1.0, 0.6, 0.85))
-	part("Hips", box(Vector3(0.1, 0.3, 0.03)), gold, Vector3(0, -0.12, -0.13))
+	# Secondary-motion pivots (driven by HeroAlive springs): gold kilt panel and two
+	# linen sash tails hanging from the back of the belt.
+	add_bone("KiltFlap", "Hips", Vector3(0, 0.03, -0.13))
+	part("KiltFlap", box(Vector3(0.1, 0.3, 0.03)), gold, Vector3(0, -0.15, 0))
+	var linen := Mats.get_mat(&"linen")
+	for side in [-1.0, 1.0]:
+		var sn := "SashL" if side < 0.0 else "SashR"
+		add_bone(sn + "1", "Hips", Vector3(0.07 * side, 0.02, 0.15))
+		part(sn + "1", box(Vector3(0.06, 0.2, 0.015)), linen, Vector3(0, -0.1, 0))
+		add_bone(sn + "2", sn + "1", Vector3(0, -0.2, 0))
+		part(sn + "2", box(Vector3(0.052, 0.17 if side < 0.0 else 0.2, 0.014)), linen, Vector3(0, -0.09, 0))
 
 	add_bone("Spine", "Hips", Vector3(0, 0.1, 0))
 	part("Spine", capsule(0.15, 0.34), faience, Vector3(0, 0.12, 0), Vector3.ZERO, Vector3(1.05, 1.0, 0.8))
@@ -43,8 +53,11 @@ func _build_body() -> void:
 	part("Head", box(Vector3(0.31, 0.27, 0.25)), lapis, Vector3(0, 0.17, 0.04))
 	part("Head", box(Vector3(0.315, 0.035, 0.255)), gold, Vector3(0, 0.12, 0.04))
 	part("Head", box(Vector3(0.315, 0.035, 0.255)), gold, Vector3(0, 0.2, 0.04))
-	part("Head", box(Vector3(0.08, 0.26, 0.07)), lapis, Vector3(0.12, -0.02, -0.06), Vector3(0, 0, -4))
-	part("Head", box(Vector3(0.08, 0.26, 0.07)), lapis, Vector3(-0.12, -0.02, -0.06), Vector3(0, 0, 4))
+	# Wig lappets on spring pivots at the temples.
+	add_bone("LappetR", "Head", Vector3(0.12, 0.11, -0.06))
+	part("LappetR", box(Vector3(0.08, 0.26, 0.07)), lapis, Vector3(0, -0.13, 0), Vector3(0, 0, -4))
+	add_bone("LappetL", "Head", Vector3(-0.12, 0.11, -0.06))
+	part("LappetL", box(Vector3(0.08, 0.26, 0.07)), lapis, Vector3(0, -0.13, 0), Vector3(0, 0, 4))
 	part("Head", box(Vector3(0.05, 0.13, 0.05)), gold, Vector3(0, -0.02, -0.1), Vector3(-10, 0, 0))
 	part("Head", box(Vector3(0.05, 0.022, 0.02)), Mats.get_mat(&"eye_gold"), Vector3(0.048, 0.15, -0.112))
 	part("Head", box(Vector3(0.05, 0.022, 0.02)), Mats.get_mat(&"eye_gold"), Vector3(-0.048, 0.15, -0.112))
@@ -85,6 +98,7 @@ func _build_body() -> void:
 	blade.mesh = cached_mesh("khopesh", KhopeshMesh.build)
 	blade.material_override = Mats.get_mat(&"bronze")
 	socket.add_child(blade)
+	sockets[&"blade"] = blade
 	var tb := Node3D.new()
 	tb.name = "TrailBase"
 	tb.position = Vector3(0, -0.16, 0)

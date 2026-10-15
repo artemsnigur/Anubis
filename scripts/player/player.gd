@@ -6,6 +6,8 @@ extends Combatant
 signal resources_changed
 signal interact_target_changed(target: Node)
 signal death_finished
+## A foot landed (anim event): &"r" / &"l", or &"" when the clip does not say.
+signal footstep_side(side: StringName)
 
 const RA_PROJECTILE := preload("res://scenes/combat/projectile.tscn")
 
@@ -16,6 +18,8 @@ const RA_PROJECTILE := preload("res://scenes/combat/projectile.tscn")
 
 var stats: PlayerStats
 var balance: BalanceConfig
+## Procedural "alive" layers on the rig bones (breathing, look-at, secondary motion, dust).
+var alive: HeroAlive
 ## Active feel preset (GameState.feel); re-applied when F7 / F6 change it.
 var feel: FeelPreset
 var stamina: float = 100.0
@@ -34,6 +38,8 @@ var _safe_timer: float = 0.0
 var _step_toggle: bool = false
 var _last_shake_frame: int = -1
 var _pivoting: bool = false
+var _move_input_prev: bool = false
+var _smear_on: bool = false
 var _released_enemies: Array[CollisionObject3D] = []
 var _look_ahead_hold: Vector3 = Vector3.ZERO
 var _look_ahead_idle: float = 0.0
@@ -46,6 +52,8 @@ func _combatant_ready() -> void:
 	balance = GameState.balance
 	fsm.immediate_transitions = true
 	animator.prime_transitions = true
+	alive = HeroAlive.new()
+	alive.setup(self)
 	GameState.feel_changed.connect(_apply_feel)
 	_apply_feel(GameState.feel)
 	faction = CombatTypes.Faction.PLAYER
@@ -128,9 +136,16 @@ func _pre_update(dt: float, real_dt: float) -> void:
 		last_safe_position = global_position
 
 
-func _post_update(_dt: float, _real_dt: float) -> void:
+func _post_update(dt: float, real_dt: float) -> void:
 	# Again after the state machine: a dodge entered this tick is invulnerable this tick.
 	hurtbox.invulnerable = invulnerable_time > 0.0 or _state_iframes()
+	alive.update(dt, real_dt)
+
+
+func teleport_to(pos: Vector3, yaw: float) -> void:
+	super.teleport_to(pos, yaw)
+	if alive != null:
+		alive.reset()
 
 
 func _state_iframes() -> bool:
@@ -201,6 +216,12 @@ func locomote(dir: Vector3, max_speed: float, dt: float, allow_face: bool = true
 	elif target.length() < speed - 0.001:
 		sharp = f.decel_sharpness
 		linear = f.decel_linear
+	var has_input := dir.length() > 0.1
+	if has_input and not _move_input_prev and speed < 0.5 and dir.length() > 0.8:
+		alive.run_start(dir.normalized())
+	elif not has_input and _move_input_prev and speed > stats.run_speed * 0.85:
+		alive.skid(0.45, v / speed)
+	_move_input_prev = has_input
 	if sharp > 0.0:
 		v = v.lerp(target, 1.0 - exp(-sharp * dt))
 	move_velocity = v.move_toward(target, linear * dt)
@@ -225,13 +246,22 @@ func _turn_to(dir: Vector3, sharpness: float, dt: float) -> void:
 		face_toward(dir, feel.turn_rate_deg, dt)
 
 
-## Sharp reversal at speed: plant and pivot (lean back, skid dust).
+## Sharp reversal at speed: plant and pivot (lean back, skid dust, scuff).
 func _on_pivot(old_dir: Vector3, strength: float) -> void:
-	if not feel.skid_fx:
+	alive.skid(strength, old_dir)
+
+
+## Smear frames: on the fastest frames of a swing the blade is stretched along its arc
+## and the trail is brighter (FeelPreset.smear).
+func set_smear(on: bool) -> void:
+	on = on and feel.smear
+	if on == _smear_on:
 		return
-	motion.recoil(-old_dir, 0.45 * strength)
-	Vfx.dust(global_position + old_dir * 0.35, int(4 + 5 * strength), 0.7 + 0.4 * strength)
-	AudioManager.play_event(&"footstep_sand" if global_position.y > -1.0 else &"footstep_stone", global_position, 3.0)
+	_smear_on = on
+	var blade := rig.get_socket(&"blade")
+	if blade != rig:
+		blade.scale = Vector3(1.0, 1.35, 1.6) if on else Vector3.ONE
+	trail.set_intensity(trail.intensity * (1.6 if on else 1.0 / 1.6))
 
 
 ## Disables collisions with enemy bodies (dodging through swarms) - both ways: the
@@ -455,6 +485,7 @@ func _footstep(side: StringName) -> void:
 	if now - int(_last_step_msec.get(side, 0)) < 120:
 		return
 	_last_step_msec[side] = now
+	footstep_side.emit(side)
 	_step_toggle = not _step_toggle
 	var ev := &"footstep_stone" if global_position.y < -1.0 else &"footstep_sand"
 	AudioManager.play_event(ev, global_position)

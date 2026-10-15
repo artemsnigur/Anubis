@@ -29,6 +29,7 @@ func enter(_msg: Dictionary) -> void:
 	player.face_instant(_dir)
 	player.animator.play(&"heavy_windup", true)
 	player.motion.anticipate(1.2)
+	player.alive.add_exertion(0.15)
 	phase = Phase.WINDUP
 	charge = 0.0
 	_full_flashed = false
@@ -36,6 +37,7 @@ func enter(_msg: Dictionary) -> void:
 
 
 func exit() -> void:
+	player.set_smear(false)
 	player.hitbox.deactivate()
 	player.trail.emitting = false
 	player.trail.set_intensity(3.2)
@@ -154,6 +156,7 @@ func _release() -> void:
 	player.trail.set_intensity(3.2 + k * 3.0)
 	player.hitbox.activate(attack, player.melee_multiplier() * lerpf(1.0, player.stats.heavy_charge_damage_mult, k))
 	player.trail.emitting = true
+	player.set_smear(true)
 	AudioManager.play_event(&"heavy_swing", player.global_position + Vector3.UP)
 
 
@@ -161,6 +164,7 @@ func _deactivate() -> void:
 	if phase != Phase.ACTIVE:
 		return
 	phase = Phase.RECOVERY
+	player.set_smear(false)
 	player.hitbox.deactivate()
 	player.trail.emitting = false
 
